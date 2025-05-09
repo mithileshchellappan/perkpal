@@ -1,163 +1,22 @@
 import { perplexity } from '@ai-sdk/perplexity';
 import { generateText, generateObject } from 'ai';
-import { z } from 'zod';
-
-// Type for card suggestion response
-export interface CardProductSuggestionResponse {
-  issuing_bank: string;
-  suggested_cards: {
-    card_name: string;
-    brief_description: string;
-  }[];
-}
-
-// Zod schema for CardProductSuggestionResponse
-export const CardProductSuggestionResponseSchema = z.object({
-  issuing_bank: z.string(),
-  suggested_cards: z.array(
-    z.object({
-      card_name: z.string(),
-      brief_description: z.string(),
-    })
-  ),
-});
-
-// Types for comprehensive card analysis
-export interface ComprehensiveCardAnalysisResponse {
-  card_name: string;
-  issuing_bank: string;
-  base_value: number | null;
-  base_value_currency: string | null;
-  earning_rewards: {
-    category: string;
-    multiplier_description: string;
-    multiplier_value_int?: number | null;
-    notes: string | null;
-  }[];
-  redemption_options: {
-    type: string;
-    value_per_point_cents: number | null;
-    value_description: string;
-  }[];
-  transfer_partners: {
-    partner_name: string;
-    partner_type: 'Airline' | 'Hotel';
-    transfer_ratio: string;
-    notes: string | null;
-  }[];
-  strategic_insights: {
-    strategy_title: string;
-    description: string;
-    value_proposition: string;
-  }[];
-  domestic_lounges_available?: number | null;
-  international_lounges_available?: number | null;
-  fees?: CardFees | null;
-  milestone_benefits?: MilestoneBenefit[] | null;
-}
-
-// Interface for card fees (new)
-export interface CardFees {
-  joining_amount?: string | null;
-  renewal_amount?: string | null;
-  forex_percentage?: string | null;
-  apr_description?: string | null;
-  addon_card_amount?: string | null;
-  reward_redemption_description?: string | null;
-  // Currency is assumed to be base_value_currency
-}
-
-// Zod schema for CardFees (new)
-export const CardFeesSchema = z.object({
-  joining_amount: z.string().nullable().optional(),
-  renewal_amount: z.string().nullable().optional(),
-  forex_percentage: z.string().nullable().optional(),
-  apr_description: z.string().nullable().optional(),
-  addon_card_amount: z.string().nullable().optional(),
-  reward_redemption_description: z.string().nullable().optional(),
-});
-
-// Interface for MilestoneBenefit (new)
-export interface MilestoneBenefit {
-  spend_level_description: string; // e.g., "Spend $5,000 in first 3 months"
-  benefit_description: string[];     // e.g., ["Receive 10,000 bonus points", "Get a $100 statement credit"]
-}
-
-// Zod schema for MilestoneBenefit (new)
-export const MilestoneBenefitSchema = z.object({
-  spend_level_description: z.string(),
-  benefit_description: z.array(z.string()),
-});
-
-// Zod schema for ComprehensiveCardAnalysisResponse
-export const ComprehensiveCardAnalysisResponseSchema = z.object({
-  card_name: z.string(),
-  issuing_bank: z.string(),
-  base_value: z.number().nullable(),
-  base_value_currency: z.string().nullable(),
-  earning_rewards: z.array(
-    z.object({
-      category: z.string(),
-      multiplier_description: z.string(),
-      multiplier_value_int: z.number().nullable().optional(),
-      notes: z.string().nullable(),
-    })
-  ),
-  redemption_options: z.array(
-    z.object({
-      type: z.string(),
-      value_per_point_cents: z.number().nullable(),
-      value_description: z.string(),
-    })
-  ),
-  transfer_partners: z.array(
-    z.object({
-      partner_name: z.string(),
-      partner_type: z.enum(['Airline', 'Hotel']),
-      transfer_ratio: z.string(),
-      notes: z.string().nullable(),
-    })
-  ),
-  strategic_insights: z.array(
-    z.object({
-      strategy_title: z.string(),
-      description: z.string(),
-      value_proposition: z.string(),
-    })
-  ),
-  domestic_lounges_available: z.number().nullable().optional(),
-  international_lounges_available: z.number().nullable().optional(),
-  fees: CardFeesSchema.nullable().optional(),
-  milestone_benefits: z.array(MilestoneBenefitSchema).nullable().optional(),
-});
-
-// Types for promotion spotlight response
-export interface PromotionSpotlightResponse {
-  card_context: string;
-  promotions: {
-    promotion_title: string;
-    description: string;
-    partner_involved: string | null;
-    offer_type: string;
-    valid_until: string | null;
-    source_url: string | null;
-  }[];
-}
-
-// Zod schema for PromotionSpotlightResponse
-export const PromotionSpotlightResponseSchema = z.object({
-  card_context: z.string(),
-  promotions: z.array(
-    z.object({
-      promotion_title: z.string(),
-      description: z.string(),
-      partner_involved: z.string().nullable(),
-      offer_type: z.string(),
-      valid_until: z.string().nullable(),
-      source_url: z.string().nullable(),
-    })
-  ),
-});
+import {
+  // Schemas
+  CardProductSuggestionResponseSchema,
+  ComprehensiveCardAnalysisResponseSchema,
+  PromotionSpotlightResponseSchema,
+  CardComparisonResponseSchema,
+  PersonalizedCardSuggestionResponseSchema,
+  PersonalizedCardSuggestionRequestDataSchema,
+  // Types
+  CardProductSuggestionResponse,
+  ComprehensiveCardAnalysisResponse,
+  PromotionSpotlightResponse,
+  CardComparisonResponse,
+  CardIdentifier,
+  PersonalizedCardSuggestionRequestData,
+  PersonalizedCardSuggestionResponse
+} from '@/types/cards';
 
 /**
  * Call the Perplexity API with a prompt and get a structured JSON object
@@ -169,7 +28,7 @@ export const PromotionSpotlightResponseSchema = z.object({
 async function queryPerplexity<T>(
   prompt: string,
   systemPrompt: string,
-  schema: z.ZodSchema<T>
+  schema: any
 ): Promise<T> {
   try {
     // Using generateObject from AI SDK
@@ -296,5 +155,112 @@ export async function getCardPromotions(
     userPrompt,
     systemPrompt,
     PromotionSpotlightResponseSchema
+  );
+}
+
+/**
+ * Get a comparison of multiple credit cards.
+ * @param cardsToCompare Array of cards to compare (name and bank).
+ * @param country The country where the cards are issued.
+ * @returns A detailed comparison of the cards.
+ */
+export async function getCardComparison(
+  cardsToCompare: CardIdentifier[],
+  country: string
+): Promise<CardComparisonResponse> {
+  const systemPrompt = 'You are an AI assistant that provides accurate, detailed, and unbiased credit card comparisons. You always respond in the requested JSON format without any additional explanatory text or markdown formatting outside of the JSON structure itself. When financial figures like annual fees are mentioned, ensure to include the currency if commonly specified (e.g., USD, INR, CAD) or if the country context implies it clearly.';
+  
+  const cardListString = cardsToCompare.map(c => `'${c.cardName}' from '${c.issuingBank}'`).join(', and ');
+
+  const userPrompt = `
+    Provide a comprehensive comparison for the following credit cards in ${country}: ${cardListString}.
+
+    For each card, detail the following:
+    - card_name: The name of the card.
+    - issuing_bank: The bank issuing the card.
+    - pros: An array of key advantages (e.g., strong rewards on travel, excellent customer service).
+    - cons: An array of key disadvantages (e.g., high annual fee, poor reward redemption value for certain categories).
+    - fees: A detailed breakdown of fees. This should be an object including:
+        - joining_amount (string with currency, or null)
+        - renewal_amount (string with currency, or null)
+        - forex_percentage (string, e.g., "3.5%" or null)
+        - apr_description (string, e.g., "15.99% - 23.99% variable" or null)
+        - addon_card_amount (string with currency, or null)
+        - reward_redemption_description (string, for any fees related to redeeming rewards, or null)
+    - transfer_partners: An array of objects, each detailing a transfer partner, including:
+        - partner_name (string)
+        - partner_type ('Airline' or 'Hotel')
+        - transfer_ratio (string, e.g., "1:1", "1000:750")
+        - notes (string or null, for any specific conditions or remarks)
+    - welcome_offer_summary: A string summarizing the current welcome offer (e.g., "50,000 bonus points after spending $3,000 in 3 months"), or null if none significant.
+    - key_reward_highlights: An array of strings highlighting the main ways to earn rewards (e.g., "5x points on travel purchased through their portal", "2% cash back on all purchases", "3 points per dollar on dining").
+    - annual_fee_display: A string clearly stating the annual fee, including currency and any conditions like 'first year free' (e.g., "$95 USD", "₹499 + GST", "€0 first year, then €120").
+    - overall_evaluation: A brief evaluation of this specific card in the context of this comparison.
+
+    After detailing each card, provide:
+    - comparison_summary: An overall summary that highlights the key differences and comparative strengths or weaknesses across all cards compared.
+    - recommendation_notes: An array of strings providing specific advice or considerations for different user profiles when choosing between these cards (e.g., "For frequent international travelers, Card A is superior due to its forex benefits and lounge access.", "If your primary spend is groceries, Card B offers better rewards in that category.").
+
+    Ensure the output is ONLY the JSON object. If information for a specific field is not available or not applicable for a card, use null for optional string/object fields and empty arrays [] for array fields, but try to populate all required fields. 
+    The country for this comparison is ${country}.
+  `;
+
+  return queryPerplexity(
+    userPrompt,
+    systemPrompt,
+    CardComparisonResponseSchema
+  );
+}
+
+/**
+ * Get personalized credit card suggestions for a user.
+ * @param requestData Data about the user's current cards and preferences.
+ * @returns Personalized card suggestions.
+ */
+export async function getPersonalizedCardSuggestions(
+  requestData: PersonalizedCardSuggestionRequestData
+): Promise<PersonalizedCardSuggestionResponse> {
+  const systemPrompt = 'You are an expert financial advisor AI specializing in credit card recommendations. You provide insightful, personalized advice based on the user\'s current portfolio and stated needs. Always respond in the requested JSON format without any additional explanatory text or markdown. Focus on actionable and clear suggestions.';
+
+  let userContext = `The user is from ${requestData.country}.\n`;
+  if (requestData.current_cards && requestData.current_cards.length > 0) {
+    userContext += `They currently hold the following cards: ${requestData.current_cards.map(c => `${c.cardName} by ${c.issuingBank}`).join(', ')}.\n`;
+  } else {
+    userContext += "They currently hold no cards or haven't specified them.\n";
+  }
+
+  if (requestData.desired_card_type) {
+    userContext += `They are specifically looking for a card with a focus on: ${requestData.desired_card_type} (e.g., Travel, Cashback, Fuel, Rewards, No Annual Fee, Forex Optimized, Balance Transfer).\n`;
+  }
+
+  if (requestData.primary_spending_categories && requestData.primary_spending_categories.length > 0) {
+    userContext += `Their primary spending categories are: ${requestData.primary_spending_categories.join(', ')}.\n`;
+  }
+
+  if (requestData.additional_preferences) {
+    userContext += `Additional preferences include: ${requestData.additional_preferences}.\n`;
+  }
+
+  const userPrompt = `
+    ${userContext}
+    Based on the user\'s profile and card preferences for ${requestData.country}, please provide the following in JSON format:
+
+    1.  "evaluation_of_current_cards": (Nullable string) A brief analysis of their current card portfolio. For example, identify any gaps, overlaps, or how well their current cards meet their stated (or implied) needs. If they have no cards, state that this part is not applicable or suggest foundational card types.
+    2.  "suggested_cards": (Array, max 3) Recommend up to three new credit cards. For each card, include:
+        *   "card_name": The official name of the card.
+        *   "issuing_bank": The bank that issues the card.
+        *   "justification": A concise explanation of why this card is a good fit for the user, considering their existing cards and preferences.
+        *   "key_benefits": An array of 2-4 key features or benefits (e.g., "5x points on travel", "No foreign transaction fees", "Complimentary airport lounge access").
+        *   "primary_card_category": Your assessment of the card\'s main type (e.g., "Premium Travel Rewards", "Everyday Cashback", "Fuel Co-branded").
+           If a "desired_card_type" was specified by the user, the recommended cards should primarily align with that type. If no type was specified, suggest a diverse set if appropriate or focus on general value.
+    3.  "important_considerations": (Nullable array of strings) Any general advice, warnings, or important factors the user should consider when applying for or using these new cards (e.g., "Consider the annual fees against your spending habits", "Check for specific welcome offer terms and conditions").
+
+    Ensure your response is ONLY the JSON object. If information isn\'t available or applicable, use null for optional fields or empty arrays for array fields where appropriate.
+  `;
+
+  return queryPerplexity<PersonalizedCardSuggestionResponse>(
+    userPrompt,
+    systemPrompt,
+    PersonalizedCardSuggestionResponseSchema
   );
 } 
