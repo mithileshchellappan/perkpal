@@ -32,7 +32,7 @@ export function LandingPage({ onLogin }: LandingPageProps) {
           <CreditCard className="h-8 w-8" />
           <span className="text-2xl font-bold">PerkPal</span>
         </div>
-        <Button onClick={handleLogin} disabled={isLoading}>
+        <Button onClick={handleLogin} disabled={isLoading} className="rounded-lg">
           {isLoading ? "Logging in..." : "Login"}
         </Button>
       </header>
@@ -43,7 +43,7 @@ export function LandingPage({ onLogin }: LandingPageProps) {
         <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto">
           PerkPal helps you track, optimize, and redeem your credit card points and perks, all in one place.
         </p>
-        <Button size="lg" onClick={handleLogin} disabled={isLoading} className="text-lg px-8 py-6">
+        <Button size="lg" onClick={handleLogin} disabled={isLoading} className="text-lg px-8 py-6 rounded-lg">
           {isLoading ? "Logging in..." : "Get Started"}
         </Button>
         <div className="mt-16 relative">
@@ -203,7 +203,7 @@ export function LandingPage({ onLogin }: LandingPageProps) {
         <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
           Join thousands of users who are getting more value from their credit cards with PerkPal.
         </p>
-        <Button size="lg" onClick={handleLogin} disabled={isLoading} className="text-lg px-8 py-6">
+        <Button size="lg" onClick={handleLogin} disabled={isLoading} className="text-lg px-8 py-6 rounded-lg">
           {isLoading ? "Logging in..." : "Get Started for Free"}
         </Button>
       </section>
@@ -246,7 +246,7 @@ export function LandingPage({ onLogin }: LandingPageProps) {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <Card className="p-6 bg-gray-800 border-none">
+    <Card className="p-6 bg-gray-800 border-none rounded-lg">
       <div className="mb-4 text-primary">{icon}</div>
       <h3 className="text-xl font-bold mb-3">{title}</h3>
       <p className="text-gray-300">{description}</p>

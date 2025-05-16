@@ -5,83 +5,44 @@ interface BinLookupResult {
   cardTypes: string[]
 }
 
-// Sample BIN database for demonstration
-const binDatabase: Record<string, BinLookupResult> = {
-  // Visa cards
-  "40123456": {
-    bank: "Chase Bank",
-    country: "United States",
-    network: "visa",
-    cardTypes: ["Chase Sapphire Preferred", "Chase Freedom Unlimited", "Chase Sapphire Reserve"],
-  },
-  "41234567": {
-    bank: "Bank of America",
-    country: "United States",
-    network: "visa",
-    cardTypes: ["Bank of America Premium Rewards", "Bank of America Travel Rewards", "Bank of America Cash Rewards"],
-  },
-  "42345678": {
-    bank: "Wells Fargo",
-    country: "United States",
-    network: "visa",
-    cardTypes: ["Wells Fargo Active Cash", "Wells Fargo Autograph", "Wells Fargo Reflect"],
-  },
-
-  // Mastercard
-  "51234567": {
-    bank: "Citi",
-    country: "United States",
-    network: "mastercard",
-    cardTypes: ["Citi Premier", "Citi Custom Cash", "Citi Double Cash"],
-  },
-  "52345678": {
-    bank: "Capital One",
-    country: "United States",
-    network: "mastercard",
-    cardTypes: ["Capital One Venture X", "Capital One Venture", "Capital One Quicksilver"],
-  },
-  "53456789": {
-    bank: "Barclays",
-    country: "United Kingdom",
-    network: "mastercard",
-    cardTypes: ["Barclaycard Arrival Plus", "Barclays View", "Barclays Aviator Red"],
-  },
-
-  // American Express
-  "34567890": {
-    bank: "American Express",
-    country: "United States",
-    network: "amex",
-    cardTypes: ["Amex Gold Card", "Amex Platinum Card", "Amex Green Card", "Amex Blue Cash Preferred"],
-  },
-  "37654321": {
-    bank: "American Express",
-    country: "United Kingdom",
-    network: "amex",
-    cardTypes: ["Amex British Airways", "Amex Preferred Rewards Gold", "Amex Platinum Cashback"],
-  },
-
-  // Discover
-  "60123456": {
-    bank: "Discover",
-    country: "United States",
-    network: "discover",
-    cardTypes: ["Discover it Cash Back", "Discover it Miles", "Discover it Student"],
-  },
-}
 
 export async function lookupBin(bin: string): Promise<BinLookupResult | null> {
-  // Simulate API call delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
+  const response = await fetch('/api/bin-lookup', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ bin }),
+  })
+  const data = await response.json()
+  if(data.success) {
+    const cardTypes = await getCardTypes(data.data.bank.name, data.data.country.name)
+    const returnObj = {
+      bank: data.data.bank.name,
+      country: data.data.country.name,
+      network: data.data.card.scheme,
+      cardTypes: cardTypes.map((card: any) => card.card_name)
+    }
 
-  // Find the matching BIN
-  const matchedBin = Object.keys(binDatabase).find((key) => bin.startsWith(key))
-
-  if (matchedBin) {
-    return binDatabase[matchedBin]
+    return returnObj
   }
 
   return null
+}
+
+export async function getCardTypes(bankName: string, country: string) {
+  const response = await fetch('/api/card-suggestions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ bankName, country }),
+  })
+  const data = await response.json()
+  if(data.success) {
+    return data.data.suggested_cards
+  }
+  return []
 }
 
 // Get network-based gradient colors

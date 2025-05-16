@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     // Try to get from cache first
-    let suggestions = null
+    let suggestions = await getCachedCardSuggestions(bankName, country);
 
     if (suggestions) {
       console.log(`Cache hit for card suggestions: ${bankName}, ${country}`);
