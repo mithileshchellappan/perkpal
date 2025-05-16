@@ -96,6 +96,7 @@ export function useUserCards() {
           network: dbCard.network,
           country: dbCard.country,
           currency: dbCard.currency,
+          cardAnalysisData: analysis,
         };
       });
       setCards(transformedCards);
