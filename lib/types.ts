@@ -1,3 +1,5 @@
+import { ComprehensiveCardAnalysisResponse } from "@/types/cards"
+
 export interface Transaction {
   date: string
   amount: number
@@ -30,14 +32,16 @@ export interface CreditCardType {
   name: string
   issuer: string
   pointsBalance: number
-  number?: number
-  cashValue: number
-  annualFee: number
-  expiryDate: string
-  rewardsRate: number
+  number?: string
+  baseValue: number
+  annualFee?: number
+  expiryDate?: string
+  rewardsRate?: number
   status: "Active" | "Inactive"
   color?: string
   secondaryColor?: string
   network?: string
   country?: string
+  currency?: string
+  cardAnalysisData?: ComprehensiveCardAnalysisResponse
 }

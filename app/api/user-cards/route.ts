@@ -12,14 +12,11 @@ import {
  * GET user cards
  */
 export async function GET(request: Request) {
-  // const { userId } = await auth(); // Get userId from Clerk
+  const { userId } = await auth(); // Get userId from Clerk
 
-  // if (!userId) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-
-  const userId = 'test'
-
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const cards = await getUserCards(userId);
@@ -37,12 +34,10 @@ export async function GET(request: Request) {
  * POST - Add a new card for a user
  */
 export async function POST(request: Request) {
-  // const { userId } = await auth(); // Get userId from Clerk
-  // if (!userId) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-
-  const userId = 'test'
+  const { userId } = await auth(); // Get userId from Clerk
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     const body = await request.json();

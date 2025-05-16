@@ -175,7 +175,7 @@ export function MyCardsView({ cards, onAddCard, onRemoveCard }: MyCardsViewProps
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
-                          ${displayCards.reduce((sum, card) => sum + card.cashValue, 0).toLocaleString()}
+                          ${displayCards.reduce((sum, card) => sum + card.baseValue, 0).toLocaleString()}
                         </p>
                         <p className="text-sm text-muted-foreground">Estimated redemption value</p>
                       </CardContent>

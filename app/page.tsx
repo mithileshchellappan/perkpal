@@ -20,92 +20,23 @@ import { NewCardView } from "@/components/new-card-view"
 import { LandingPage } from "@/components/landing-page"
 import type { CreditCardType } from "@/lib/types"
 import { CreditCard, Gift, Globe, BarChart, Tag, Bot, Search } from "lucide-react"
-import { generateColorFromString } from "@/lib/utils"
 import { useAuth } from "@clerk/nextjs"
-
-// Sample data - update CreditCardType to include lastFourDigits
-const initialCards: CreditCardType[] = [
-  // {
-  //   id: "1",
-  //   name: "Sapphire Preferred",
-  //   issuer: "Chase",
-  //   number: "XXXX-XXXX-XXXX-4567",
-  //   pointsBalance: 54892,
-  //   cashValue: 1097.84,
-  //   annualFee: 95,
-  //   expiryDate: "05/2027",
-  //   rewardsRate: 2.5,
-  //   status: "Active",
-  //   color: generateColorFromString("Sapphire Preferred"),
-  //   secondaryColor: generateColorFromString("Sapphire Preferred"),
-  //   network: "visa",
-  // },
-  // {
-  //   id: "2",
-  //   name: "Gold Card",
-  //   issuer: "American Express",
-  //   number: "XXXX-XXXX-XXXX-7890",
-  //   pointsBalance: 32450,
-  //   cashValue: 649.0,
-  //   annualFee: 250,
-  //   expiryDate: "09/2026",
-  //   rewardsRate: 4,
-  //   status: "Active",
-  //   color: generateColorFromString("Gold Card"),
-  //   secondaryColor: generateColorFromString("Gold Card"),
-  //   network: "amex",
-  // },
-  // {
-  //   id: "3",
-  //   name: "Venture X",
-  //   issuer: "Capital One",
-  //   number: "XXXX-XXXX-XXXX-1234",
-  //   pointsBalance: 87650,
-  //   cashValue: 876.5,
-  //   annualFee: 395,
-  //   expiryDate: "03/2025",
-  //   rewardsRate: 2,
-  //   status: "Inactive",
-  //   color: generateColorFromString("Venture X"),
-  //   secondaryColor: generateColorFromString("Venture X"),
-  //   network: "mastercard",
-  // },
-  // {
-  //   id: "4",
-  //   name: "Freedom Unlimited",
-  //   issuer: "Chase",
-  //   number: "XXXX-XXXX-XXXX-9876",
-  //   pointsBalance: 12345,
-  //   cashValue: 123.45,
-  //   annualFee: 0,
-  //   expiryDate: "11/2026",
-  //   rewardsRate: 1.5,
-  //   status: "Active",
-  //   color: generateColorFromString("Freedom Unlimited"),
-  //   secondaryColor: generateColorFromString("Freedom Unlimited"),
-  //   network: "visa",
-  // },
-  // {
-  //   id: "5",
-  //   name: "Atlas Credit Card",
-  //   issuer: "Axis Bank",
-  //   number: "XXXX-XXXX-XXXX-5678",
-  //   pointsBalance: 45678,
-  //   cashValue: 456.78,
-  //   annualFee: 5000,
-  //   expiryDate: "07/2027",
-  //   rewardsRate: 5,
-  //   status: "Active",
-  //   color: generateColorFromString("Atlas Credit Card"),
-  //   secondaryColor: generateColorFromString("Atlas Credit Card"),
-  //   network: "visa",
-  // },
-]
+import { useUserCards } from "@/hooks/use-user-cards"
 
 export default function Page() {
   const { isLoaded, isSignedIn } = useAuth()
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
-  const [cards, setCards] = useState<CreditCardType[]>(initialCards)
+  
+  const { 
+    cards, 
+    isLoading: isLoadingCards, 
+    error: cardsError, 
+    refetch: refetchCards,
+    addCard,
+    isAddingCard,
+    addCardError
+  } = useUserCards()
+
   const [selectedCard, setSelectedCard] = useState<CreditCardType | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [activeView, setActiveView] = useState<
@@ -113,9 +44,9 @@ export default function Page() {
   >("dashboard")
 
   // Calculate totals
-  const totalPoints = cards.reduce((sum, card) => sum + card.pointsBalance, 0)
-  const totalCashValue = cards.reduce((sum, card) => sum + card.cashValue, 0)
-  const totalAnnualFees = cards.reduce((sum, card) => sum + card.annualFee, 0)
+  const totalPoints = cards.reduce((sum, card) => sum + (card.pointsBalance || 0), 0)
+  const totalCashValue = cards.reduce((sum, card) => sum + (card.baseValue || 0), 0)
+  const totalAnnualFees = cards.reduce((sum, card) => sum + (card.annualFee || 0), 0)
 
   useEffect(() => {
     if (isLoaded) {
@@ -124,28 +55,37 @@ export default function Page() {
   }, [isLoaded])
 
   const handleAddCard = (card: CreditCardType) => {
-    setCards([...cards, card])
     setShowAddModal(false)
+    console.log("Adding card (placeholder - needs backend integration & refetch):", card)
   }
 
   const handleEditCard = (updatedCard: CreditCardType) => {
-    setCards(cards.map((card) => (card.id === updatedCard.id ? updatedCard : card)))
+    console.log("Editing card (placeholder - needs backend integration & refetch):", updatedCard)
   }
 
   const handleDeleteCard = (id: string) => {
-    setCards(cards.filter((card) => card.id !== id))
+    console.log("Deleting card (placeholder - needs backend integration & refetch):", id)
   }
 
   const handleLogin = () => {
     // This is now handled by Clerk in the LandingPage component
   }
 
-  if (isLoadingAuth) {
+  if (isLoadingAuth || isLoadingCards) {
     return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>
   }
 
   if (!isSignedIn) {
     return <LandingPage onLogin={handleLogin} />
+  }
+
+  if (cardsError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
+        <p>Error loading your cards: {cardsError.message}</p>
+        <Button onClick={() => refetchCards()} className="mt-4">Try Again</Button>
+      </div>
+    )
   }
 
   return (
@@ -332,7 +272,14 @@ export default function Page() {
         </main>
       </div>
 
-      <AddEditCardModal open={showAddModal} onOpenChange={setShowAddModal} onSave={handleAddCard} />
+      <AddEditCardModal 
+        open={showAddModal} 
+        onOpenChange={setShowAddModal} 
+        onSave={handleAddCard} 
+        addCardAction={addCard}
+        isAddingCardAction={isAddingCard}
+        addCardErrorAction={addCardError}
+      />
     </div>
   )
 }

@@ -21,20 +21,31 @@ import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card } from "@/components/ui/card"
 import { CardNetworkLogo } from "@/components/card-network-logos"
-import { addCardToDB } from "@/lib/api-calls"
+import { generateColorFromString, adjustColor } from "@/lib/utils"
 
 interface AddEditCardModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   card?: CreditCardType
   onSave: (card: CreditCardType) => void
+  addCardAction: (cardData: CreditCardType) => Promise<CreditCardType | null>
+  isAddingCardAction?: boolean
+  addCardErrorAction?: Error | null
 }
 
 type Step = "bin" | "card-details"
 
-export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCardModalProps) {
+export function AddEditCardModal({
+  open,
+  onOpenChange,
+  card,
+  onSave,
+  addCardAction,
+  isAddingCardAction,
+  addCardErrorAction,
+}: AddEditCardModalProps) {
   const [step, setStep] = useState<Step>(card ? "card-details" : "bin")
-  const [binNumber, setBinNumber] = useState("")
+  const [binNumber, setBinNumber] = useState(card?.number?.substring(0, 8) || "")
   const [binError, setBinError] = useState<string | null>(null)
   const [binResult, setBinResult] = useState<{
     bank: string
@@ -49,7 +60,7 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
       name: "",
       issuer: "",
       pointsBalance: 0,
-      cashValue: 0,
+      baseValue: 0,
       annualFee: 0,
       expiryDate: "",
       rewardsRate: 1,
@@ -72,14 +83,14 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
           name: "",
           issuer: "",
           pointsBalance: 0,
-          cashValue: 0,
+          baseValue: 0,
           annualFee: 0,
           expiryDate: "",
           rewardsRate: 1,
           status: "Active",
           color: "#ff6b00",
           network: "other",
-          number: -1
+          number: ""
         })
       } else {
         setStep("card-details")
@@ -100,7 +111,7 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
           ...formData,
           issuer: result.bank,
           network: result.network,
-          number: parseInt(binNumber),
+          number: binNumber,
           country: result.country
         }
         setBinResult(result)
@@ -151,22 +162,32 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (step === "bin") {
       handleBinLookup()
     } else {
-      // In a real app, we would fetch these values from the backend
-      // For now, we'll set some default values
-      const cashValue = formData.pointsBalance * 0.02 // Assume 2 cents per point
-      const saveData = {
+      const baseColor = formData.color || generateColorFromString(formData.name || "")
+      const saveData: CreditCardType = {
         ...formData,
-        number: parseInt(binNumber)
+        number: formData.number || binNumber,
+        color: baseColor,
+        secondaryColor: formData.secondaryColor || adjustColor(baseColor, 10),
       }
-      console.log("saveData", saveData)
-      onSave(saveData)
-      addCardToDB(saveData).then(() => {})
+
+      if (card) {
+        console.log("saveData for edit", saveData)
+        onSave(saveData)
+      } else {
+        console.log("saveData for add", saveData)
+        const addedCardResponse = await addCardAction(saveData)
+        if (addedCardResponse) {
+          onSave(addedCardResponse)
+        } else {
+          console.error("Failed to add card through hook", addCardErrorAction)
+        }
+      }
     }
   }
 
@@ -324,6 +345,16 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
                   </SelectContent>
                 </Select>
               </div>
+
+              {addCardErrorAction && step === "card-details" && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{addCardErrorAction.message}</AlertDescription>
+                </Alert>
+              )}
+              {isAddingCardAction && step === "card-details" && (
+                <div className="mt-4 text-center">Adding card...</div>
+              )}
             </div>
           )}
 

@@ -38,7 +38,6 @@ export function CreditCardTable({ cards, onEdit, onDelete }: CreditCardTableProp
             <TableHead>Points Balance</TableHead>
             <TableHead>Cash Value</TableHead>
             <TableHead>Annual Fee</TableHead>
-            <TableHead>Expiry Date</TableHead>
             <TableHead>Rewards Rate</TableHead>
             <TableHead>Status</TableHead>
             <TableHead></TableHead>
@@ -62,9 +61,8 @@ export function CreditCardTable({ cards, onEdit, onDelete }: CreditCardTableProp
                 </div>
               </TableCell>
               <TableCell>{card.pointsBalance.toLocaleString()}</TableCell>
-              <TableCell>${card.cashValue.toLocaleString()}</TableCell>
+              <TableCell>${card.baseValue.toLocaleString()}</TableCell>
               <TableCell>${card.annualFee}</TableCell>
-              <TableCell>{card.expiryDate}</TableCell>
               <TableCell>{card.rewardsRate}x</TableCell>
               <TableCell>
                 <span

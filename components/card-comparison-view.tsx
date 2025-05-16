@@ -332,7 +332,7 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
                     color: card.cardDetails.color,
                     secondaryColor: card.cardDetails.secondaryColor,
                     pointsBalance: 0,
-                    cashValue: 0,
+                    baseValue: 0,
                     annualFee: 0,
                     expiryDate: "",
                     rewardsRate: 0,

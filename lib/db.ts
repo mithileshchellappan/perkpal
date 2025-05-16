@@ -1,6 +1,9 @@
 import { supabase, toCamelCase, toSnakeCase } from './supabase';
-import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse } from '@/types/cards';
+import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse as InternalComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse } from '@/types/cards';
 import { CardPointsEntry } from '@/types/points';
+
+// Re-export for use in other modules if needed, or use the internal one directly if not meant to be widely public
+export type ComprehensiveCardAnalysisResponse = InternalComprehensiveCardAnalysisResponse;
 
 // --- Card Analysis Cache Functions ---
 
@@ -243,65 +246,100 @@ export async function getUserCards(userId: string): Promise<(UserCard & { approx
     .eq('user_id', userId);
 
   if (cardsError || !userCards) {
+    console.error('Error fetching user cards:', cardsError);
     return [];
   }
 
-  // For each card, get the card analysis data to calculate approxPointsValue
-  const cards = await Promise.all(
-    userCards.map(async (card) => {
-      const camelCard = toCamelCase(card) as any;
-      
-      // Format to match the UserCard interface
-      const userCard: UserCard = {
-        id: camelCard.id,
-        userId: camelCard.userId,
-        bin: camelCard.bin,
-        cardName: camelCard.cardName,
-        bank: camelCard.bank,
-        network: camelCard.network,
-        country: camelCard.country,
-        pointsBalance: camelCard.pointsBalance,
-        cardAnalysisData: camelCard.cardAnalysisData 
-          ? JSON.parse(camelCard.cardAnalysisData)
-          : null,
-        addedDate: camelCard.addedDate,
-      };
+  // Get all unique combinations of card_name, bank, and country
+  const cardAnalysisQueries = userCards.map(card => ({
+    card_name: card.card_name,
+    issuing_bank: card.bank,
+    country: card.country
+  }));
 
-      // Get card analysis for base value
-      let baseValue: number | null = null;
-      let baseValueCurrency: string | null = null;
-
-      if (!userCard.cardAnalysisData) {
-        const { data: analysisData } = await supabase
-          .from('card_analyses')
-          .select('base_value, base_value_currency')
-          .eq('card_name', userCard.cardName)
-          .eq('issuing_bank', userCard.bank)
-          .eq('country', userCard.country)
-          .single();
-
-        if (analysisData) {
-          baseValue = analysisData.base_value;
-          baseValueCurrency = analysisData.base_value_currency;
-        }
-      } else {
-        baseValue = userCard.cardAnalysisData.base_value;
-        baseValueCurrency = userCard.cardAnalysisData.base_value_currency;
-      }
-
-      // Calculate approximate points value if possible
-      const approxPointsValue = 
-        userCard.pointsBalance && baseValue 
-          ? userCard.pointsBalance * baseValue 
-          : undefined;
-
-      return {
-        ...userCard,
-        approxPointsValue,
-        base_value_currency: baseValueCurrency || undefined,
-      };
-    })
+  // Remove duplicates to minimize queries
+  const uniqueQueries = cardAnalysisQueries.filter((query, index, self) => 
+    index === self.findIndex(q => 
+      q.card_name === query.card_name && 
+      q.issuing_bank === query.issuing_bank && 
+      q.country === query.country
+    )
   );
+
+  // Fetch all needed card analyses in a single query
+  const { data: analysesData, error: analysesError } = await supabase
+    .from('card_analyses')
+    .select('*')
+    .in('card_name', uniqueQueries.map(q => q.card_name))
+    .in('issuing_bank', uniqueQueries.map(q => q.issuing_bank))
+    .in('country', uniqueQueries.map(q => q.country));
+
+  const analysesMap = new Map();
+  if (analysesData && !analysesError) {
+    // Create a map for quick lookup
+    analysesData.forEach(analysis => {
+      const key = `${analysis.card_name}|${analysis.issuing_bank}|${analysis.country}`;
+      analysesMap.set(key, analysis);
+    });
+  }
+
+  // Process each card with its analysis data
+  const cards = userCards.map(card => {
+    const camelCard = toCamelCase(card) as any;
+    
+    // Format to match the UserCard interface
+    const userCard: UserCard = {
+      id: camelCard.id,
+      userId: camelCard.userId,
+      bin: camelCard.bin,
+      cardName: camelCard.cardName,
+      bank: camelCard.bank,
+      network: camelCard.network,
+      country: camelCard.country,
+      pointsBalance: camelCard.pointsBalance,
+      last4Digits: camelCard.last4Digits,
+      cardAnalysisData: camelCard.cardAnalysisData 
+        ? JSON.parse(camelCard.cardAnalysisData)
+        : null,
+      addedDate: camelCard.addedDate,
+    };
+
+    // Look up analysis from the map
+    const lookupKey = `${card.card_name}|${card.bank}|${card.country}`;
+    const analysis = analysesMap.get(lookupKey);
+    
+    let baseValue: number | null = null;
+    let baseValueCurrency: string | null = null;
+
+    if (!userCard.cardAnalysisData && analysis) {
+      baseValue = analysis.base_value;
+      baseValueCurrency = analysis.base_value_currency;
+      
+      // If we have analysis_data, parse it
+      if (analysis.analysis_data) {
+        try {
+          userCard.cardAnalysisData = JSON.parse(analysis.analysis_data);
+        } catch (e) {
+          console.error('Error parsing analysis data:', e);
+        }
+      }
+    } else if (userCard.cardAnalysisData) {
+      baseValue = userCard.cardAnalysisData.base_value;
+      baseValueCurrency = userCard.cardAnalysisData.base_value_currency;
+    }
+
+    // Calculate approximate points value if possible
+    const approxPointsValue = 
+      userCard.pointsBalance && baseValue 
+        ? userCard.pointsBalance * baseValue 
+        : undefined;
+
+    return {
+      ...userCard,
+      approxPointsValue,
+      currency: baseValueCurrency || undefined,
+    };
+  });
 
   return cards;
 }
@@ -342,17 +380,27 @@ export async function getCardById(userId: string, cardId: string): Promise<(User
   let baseValueCurrency: string | null = null;
 
   if (!userCard.cardAnalysisData) {
+    // Fetch the analysis data in a single query
     const { data: analysisData } = await supabase
       .from('card_analyses')
-      .select('base_value, base_value_currency')
-      .eq('card_name', userCard.cardName)
-      .eq('bank', userCard.bank)
-      .eq('country', userCard.country)
+      .select('base_value, base_value_currency, analysis_data')
+      .eq('card_name', card.card_name)
+      .eq('issuing_bank', card.bank)
+      .eq('country', card.country)
       .single();
 
     if (analysisData) {
       baseValue = analysisData.base_value;
       baseValueCurrency = analysisData.base_value_currency;
+      
+      // If we have analysis_data, parse it
+      if (analysisData.analysis_data) {
+        try {
+          userCard.cardAnalysisData = JSON.parse(analysisData.analysis_data);
+        } catch (e) {
+          console.error('Error parsing analysis data:', e);
+        }
+      }
     }
   } else {
     baseValue = userCard.cardAnalysisData.base_value;

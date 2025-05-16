@@ -9,7 +9,7 @@ export const addCardToDB = async (cardData: CreditCardType) => {
         network: cardData.network,
         country: cardData.country,
         pointsBalance: cardData.pointsBalance,
-        cashValue: cardData.cashValue,
+        baseValue: cardData.baseValue,
     }
   const response = await fetch('/api/user-cards', {
     method: 'POST',

@@ -173,7 +173,7 @@ export function CardDetailView({ card, onClose }: CardDetailViewProps) {
 
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Cash Value</span>
-                  <span className="font-medium">${card.cashValue.toLocaleString()}</span>
+                  <span className="font-medium">${card.baseValue.toLocaleString()}</span>
                 </div>
 
                 <div className="flex justify-between items-center">
