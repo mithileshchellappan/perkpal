@@ -6,7 +6,7 @@ import {
   // getCardById, // We might need this later for specific card operations
   // updateUserCard, 
   // deleteUserCard 
-} from '@/lib/db'; // Updated to use the new unified db.ts
+} from '@/lib/db'; // Updated to use db.ts directly
 
 /**
  * GET user cards

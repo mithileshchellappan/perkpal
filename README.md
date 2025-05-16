@@ -1,24 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PerkPal
 
-## Getting Started
+A credit card management and optimization platform.
 
-First, run the development server:
+## Setup
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- Supabase account
+
+### Installation
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/yourusername/perkpal.git
+   cd perkpal
+   ```
+
+2. Install dependencies
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Set up environment variables
+   ```bash
+   cp .env.example .env.local
+   ```
+   Edit the `.env.local` file and add your own values for:
+   - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+   - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
+
+### Setting up Supabase
+
+1. Create a new Supabase project at [supabase.com](https://supabase.com)
+2. Run the database migration script to create the required tables
+   - Go to your Supabase project dashboard
+   - Navigate to the SQL Editor
+   - Copy the contents of the `scripts/supabase-schema.sql` file
+   - Paste it into the SQL Editor and run the queries
+
+### Running the application
+
+To start the development server:
 
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Credit card analysis and recommendations
+- Partner programs tracking
+- Card points tracking and optimization
+- Statement analysis
+
+## Authentication
+
+The app uses Clerk for authentication. Set up your Clerk environment variables in `.env.local` if you want to enable authentication.
 
 ## Learn More
 

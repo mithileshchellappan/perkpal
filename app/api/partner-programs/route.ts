@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getCardAnalysis } from '@/lib/services/perplexityService';
-import { getCachedCardAnalysis, setCachedCardAnalysis } from '@/lib/db';
+import { getCardPartnerPrograms } from '@/lib/services/perplexityService';
+import { getCachedCardPartnerPrograms, setCachedCardPartnerPrograms } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -31,34 +31,34 @@ export async function POST(request: Request) {
     }
 
     // Try to get from cache first
-    let analysis = await getCachedCardAnalysis(cardName, issuingBank, country);
+    let partnerPrograms = await getCachedCardPartnerPrograms(cardName, issuingBank, country);
 
-    if (analysis) {
-      console.log(`Cache hit for card analysis: ${cardName}, ${issuingBank}, ${country}`);
+    if (partnerPrograms) {
+      console.log(`Cache hit for partner programs: ${cardName}, ${issuingBank}, ${country}`);
       return NextResponse.json({
         success: true,
-        data: analysis,
+        data: partnerPrograms,
         source: 'cache',
       });
     }
 
-    console.log(`Cache miss for card analysis: ${cardName}, ${issuingBank}, ${country}. Fetching from API.`);
-    // Get detailed card analysis from service
-    analysis = await getCardAnalysis(cardName, issuingBank, country);
+    console.log(`Cache miss for partner programs: ${cardName}, ${issuingBank}, ${country}. Fetching from API.`);
+    // Get partner programs from service
+    partnerPrograms = await getCardPartnerPrograms(cardName, issuingBank, country);
 
     // Store in cache for future requests
-    if (analysis) {
-      await setCachedCardAnalysis(cardName, issuingBank, country, analysis);
+    if (partnerPrograms) {
+      await setCachedCardPartnerPrograms(cardName, issuingBank, country, partnerPrograms);
     }
 
     return NextResponse.json({
       success: true,
-      data: analysis,
+      data: partnerPrograms,
     });
   } catch (error) {
-    console.error('Error in card analysis API:', error);
+    console.error('Error in partner programs API:', error);
     return NextResponse.json(
-      { error: 'Failed to get card analysis' },
+      { error: 'Failed to get partner programs' },
       { status: 500 }
     );
   }

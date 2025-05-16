@@ -11,6 +11,7 @@ import {
   PersonalizedCardSuggestionRequestDataSchema,
   EcommerceCardAdvisorRequestDataSchema,
   EcommerceCardAdvisorResponseSchema,
+  CardPartnerProgramsResponseSchema,
   // Types
   CardProductSuggestionResponse,
   ComprehensiveCardAnalysisResponse,
@@ -20,7 +21,8 @@ import {
   PersonalizedCardSuggestionRequestData,
   PersonalizedCardSuggestionResponse,
   EcommerceCardAdvisorRequestData,
-  EcommerceCardAdvisorResponse
+  EcommerceCardAdvisorResponse,
+  CardPartnerProgramsResponse
 } from '@/types/cards';
 
 /**
@@ -74,9 +76,11 @@ async function queryPerplexity<T>(
  * @returns A list of card suggestions
  */
 export async function getCardSuggestions(bankName: string, country: string): Promise<CardProductSuggestionResponse> {
-  const systemPrompt = 'You are an AI assistant that provides accurate and concise information about credit card rewards and promotions. You always respond in the requested JSON format without any additional explanatory text or markdown formatting outside of the JSON structure itself.';
+  const systemPrompt = 'You are an AI assistant that provides accurate and concise information about credit card rewards and promotions. You always respond in the requested JSON format without any additional explanatory text or markdown formatting outside of the JSON structure itself. Do not include the character u0000 in your response.';
   const userPrompt = `
     For the bank ${bankName}, provide a list of their credit card products currently offered in ${country}. Ensure to cover all credit cards offered by the bank.
+
+    Make sure to cover all segments of credit card offered by the bank, be it Ultra Premium, Premium, Business, Entry-Level, Co-Branded, etc.
 
     Ensure the output is only the JSON object, with no preceding or succeeding text. Use standard escape characters for any quotes within string values.
   `;
@@ -104,7 +108,7 @@ export async function getCardAnalysis(
   const userPrompt = `
     Provide a comprehensive rewards analysis for the '${cardName}' credit card from '${issuingBank}' in ${country}.
 
-    Include details on earning rewards, redemption options, transfer partners, strategic insights, and lounge access (domestic and international).
+    Include details on earning rewards, redemption options, and strategic insights.
     For monetary values like base point value, provide the amount and its currency (e.g., base_value_currency).
     
     Detail any applicable fees within a nested 'fees' object. This 'fees' object should include:
@@ -329,5 +333,44 @@ export async function getEcommerceCardSuggestions(
     userPrompt,
     systemPrompt,
     EcommerceCardAdvisorResponseSchema
+  );
+}
+
+/**
+ * Get partner programs for a card (airlines and hotels) with transfer ratios
+ * @param cardName The name of the card to analyze
+ * @param issuingBank The issuing bank of the card
+ * @param country The country where the card is issued
+ * @returns Details about partner programs and lounge access
+ */
+export async function getCardPartnerPrograms(
+  cardName: string, 
+  issuingBank: string,
+  country: string
+): Promise<CardPartnerProgramsResponse> {
+  const systemPrompt = 'You are an AI assistant that provides accurate and concise information about credit card rewards and promotions. You always respond in the requested JSON format without any additional explanatory text or markdown formatting outside of the JSON structure itself.';
+  const userPrompt = `
+    Provide information about the partner programs (airlines and hotels) for the '${cardName}' credit card from '${issuingBank}' in ${country}.
+
+    For each partner, include:
+    - partner_name: The name of the airline or hotel partner
+    - partner_type: Either 'Airline' or 'Hotel'
+    - transfer_ratio: The transfer ratio (e.g., "1:1", "1000:750")
+    - current_bonus: Any current promotional bonus for transferring to this partner (null if none)
+    - transfer_url: URL to transfer points to this partner (null if not available)
+    - logo_url: URL to the partner's logo from Wikipedia (e.g., https://upload.wikimedia.org/wikipedia/commons/thumb/...). Please find the actual Wikipedia URL for the official logo of each partner. If no Wikipedia logo is available, use null.
+
+    Also include information about lounge access:
+    - domestic_lounges_available: Number of domestic lounges available (null if unknown)
+    - international_lounges_available: Number of international lounges available (null if unknown)
+
+    Ensure the output is ONLY the JSON object without any additional text or explanations.
+    Use standard escape characters for any quotes within string values.
+  `;
+
+  return queryPerplexity(
+    userPrompt,
+    systemPrompt,
+    CardPartnerProgramsResponseSchema
   );
 } 

@@ -51,14 +51,6 @@ export const ComprehensiveCardAnalysisResponseSchema = z.object({
       value_description: z.string(),
     })
   ),
-  transfer_partners: z.array(
-    z.object({
-      partner_name: z.string(),
-      partner_type: z.enum(['Airline', 'Hotel']),
-      transfer_ratio: z.string(),
-      notes: z.string().nullable(),
-    })
-  ),
   strategic_insights: z.array(
     z.object({
       strategy_title: z.string(),
@@ -66,8 +58,6 @@ export const ComprehensiveCardAnalysisResponseSchema = z.object({
       value_proposition: z.string(),
     })
   ),
-  domestic_lounges_available: z.number().nullable().optional(),
-  international_lounges_available: z.number().nullable().optional(),
   fees: CardFeesSchema.nullable().optional(),
   milestone_benefits: z.array(MilestoneBenefitSchema).nullable().optional(),
 });
@@ -103,7 +93,14 @@ export const ComparedCardDetailsSchema = z.object({
   pros: z.array(z.string()),
   cons: z.array(z.string()),
   fees: CardFeesSchema.nullable(),
-  transfer_partners: ComprehensiveCardAnalysisResponseSchema.shape.transfer_partners,
+  transfer_partners: z.array(
+    z.object({
+      partner_name: z.string(),
+      partner_type: z.enum(['Airline', 'Hotel']),
+      transfer_ratio: z.string(),
+      notes: z.string().nullable(),
+    })
+  ),
   welcome_offer_summary: z.string().nullable(),
   key_reward_highlights: z.array(z.string()),
   annual_fee_display: z.string(),
@@ -220,4 +217,24 @@ export const CardStatementAnalysisResponseSchema = z.object({
   pointsMissedPercentage: z.number(), // percentage of potential points missed
   categories: z.array(CardStatementCategorySchema),
 });
-export type CardStatementAnalysisResponse = z.infer<typeof CardStatementAnalysisResponseSchema>; 
+export type CardStatementAnalysisResponse = z.infer<typeof CardStatementAnalysisResponseSchema>;
+
+// Partner Programs Schema
+export const PartnerProgramSchema = z.object({
+  partner_name: z.string(),
+  partner_type: z.enum(['Airline', 'Hotel']),
+  transfer_ratio: z.string(),
+  current_bonus: z.string().nullable(),
+  transfer_url: z.string().nullable(),
+  logo_url: z.string().nullable(),
+});
+export type PartnerProgram = z.infer<typeof PartnerProgramSchema>;
+
+export const CardPartnerProgramsResponseSchema = z.object({
+  card_name: z.string(),
+  issuing_bank: z.string(),
+  partners: z.array(PartnerProgramSchema),
+  domestic_lounges_available: z.number().nullable(),
+  international_lounges_available: z.number().nullable(),
+});
+export type CardPartnerProgramsResponse = z.infer<typeof CardPartnerProgramsResponseSchema>; 

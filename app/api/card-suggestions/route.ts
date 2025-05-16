@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     // Try to get from cache first
-    let suggestions = getCachedCardSuggestions(bankName, country);
+    let suggestions = null
 
     if (suggestions) {
       console.log(`Cache hit for card suggestions: ${bankName}, ${country}`);
@@ -36,17 +36,22 @@ export async function POST(request: Request) {
     }
 
     console.log(`Cache miss for card suggestions: ${bankName}, ${country}. Fetching from API.`);
+    
     // Get card suggestions for the bank from service
     suggestions = await getCardSuggestions(bankName, country);
 
     // Store in cache for future requests
-    if (suggestions) {
-      setCachedCardSuggestions(bankName, country, suggestions);
+    if (suggestions && suggestions.suggested_cards && suggestions.suggested_cards.length > 0) {
+      await setCachedCardSuggestions(bankName, country, suggestions);
+      console.log(`Stored ${suggestions.suggested_cards.length} card products for ${bankName} in ${country}`);
+    } else {
+      console.log(`No card products returned for ${bankName} in ${country}`);
     }
 
     return NextResponse.json({
       success: true,
       data: suggestions,
+      source: 'api',
     });
   } catch (error) {
     console.error('Error in card suggestions API:', error);

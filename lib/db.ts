@@ -1,140 +1,226 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
-import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse, CardFees, MilestoneBenefit } from '@/types/cards';
+import { supabase, toCamelCase, toSnakeCase } from './supabase';
+import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse } from '@/types/cards';
+import { CardPointsEntry } from '@/types/points';
 
-const dbDir = path.resolve(process.cwd(), 'data');
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-const dbPath = path.join(dbDir, 'perplexity_cache.sqlite');
-console.log('dbPath', dbPath);
+// --- Card Analysis Cache Functions ---
 
-let db: Database.Database;
+export async function getCachedCardAnalysis(
+  cardName: string,
+  issuingBank: string,
+  country: string
+): Promise<ComprehensiveCardAnalysisResponse | null> {
+  const { data, error } = await supabase
+    .from('card_analyses')
+    .select('*')
+    .eq('card_name', cardName)
+    .eq('issuing_bank', issuingBank)
+    .eq('country', country)
+    .single();
 
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(dbPath);
-    db.pragma('journal_mode = WAL');
-    createTables();
+  if (error || !data) {
+    return null;
   }
-  return db;
-}
 
-function createTables() {
-  const dbInstance = getDb();
-  dbInstance.exec(`
-    CREATE TABLE IF NOT EXISTS CardAnalyses (
-      card_name TEXT NOT NULL,
-      issuing_bank TEXT NOT NULL,
-      country TEXT NOT NULL,
-      analysis_data TEXT NOT NULL, -- JSON string of ComprehensiveCardAnalysisResponse
-      base_value REAL,            -- Separate column for base_value
-      base_value_currency TEXT,   -- Separate column for base_value_currency
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (card_name, issuing_bank, country)
-    );
-  `);
-
-  dbInstance.exec(`
-    CREATE TABLE IF NOT EXISTS CardSuggestions (
-      bank_name TEXT NOT NULL,
-      country TEXT NOT NULL,
-      suggestions_data TEXT NOT NULL, -- JSON string of CardProductSuggestionResponse
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-      PRIMARY KEY (bank_name, country)
-    );
-  `);
+  // Convert snake_case to camelCase
+  const cardData = toCamelCase(data);
   
-  // Add UserCards table for user card management functionality
-  dbInstance.exec(`
-    CREATE TABLE IF NOT EXISTS UserCards (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      bin TEXT NOT NULL,
-      cardProductName TEXT NOT NULL,
-      issuingBank TEXT NOT NULL,
-      network TEXT NOT NULL,
-      country TEXT NOT NULL,
-      pointsBalance REAL,
-      last4Digits TEXT,
-      cardAnalysisData TEXT,
-      addedDate TEXT NOT NULL,
-      UNIQUE(userId, id)
-    );
-  `);
-}
-
-// Helper to parse with potential nulls for optional complex types
-function parseJSONSafe<T>(jsonString: string | null | undefined): T | null {
-    if (jsonString == null) return null;
-    try {
-        return JSON.parse(jsonString) as T;
-    } catch (e) {
-        console.error("Failed to parse JSON:", e);
-        return null;
-    }
-}
-
-export function getCachedCardAnalysis(cardName: string, issuingBank: string, country: string): ComprehensiveCardAnalysisResponse | null {
-  const dbInstance = getDb();
-  const stmt = dbInstance.prepare('SELECT analysis_data, base_value, base_value_currency FROM CardAnalyses WHERE card_name = ? AND issuing_bank = ? AND country = ?');
-  const row = stmt.get(cardName, issuingBank, country) as { analysis_data: string, base_value: number | null, base_value_currency: string | null } | undefined;
-
-  if (row) {
-    const data = JSON.parse(row.analysis_data);
-    // Ensure nested JSON strings are parsed if they were stored as such,
-    // or handle cases where complex objects might need specific re-hydration.
-    // Also ensure the base values from separate columns are used
+  try {
     return {
-        ...data,
-        // Override with the values from separate columns
-        base_value: row.base_value,
-        base_value_currency: row.base_value_currency,
-        fees: data.fees ? (typeof data.fees === 'string' ? parseJSONSafe<CardFees>(data.fees) : data.fees) : null,
-        milestone_benefits: data.milestone_benefits ? (typeof data.milestone_benefits === 'string' ? parseJSONSafe<MilestoneBenefit[]>(data.milestone_benefits) : data.milestone_benefits) : [],
+      card_name: cardData.cardName,
+      issuing_bank: cardData.issuingBank,
+      base_value: cardData.baseValue,
+      base_value_currency: cardData.baseValueCurrency,
+      earning_rewards: JSON.parse(cardData.analysisData).earning_rewards,
+      redemption_options: JSON.parse(cardData.analysisData).redemption_options,
+      strategic_insights: JSON.parse(cardData.analysisData).strategic_insights,
+      fees: JSON.parse(cardData.analysisData).fees,
+      milestone_benefits: JSON.parse(cardData.analysisData).milestone_benefits || [],
     } as ComprehensiveCardAnalysisResponse;
+  } catch (e) {
+    console.error('Error parsing card analysis data:', e);
+    return null;
   }
-  return null;
 }
 
-export function setCachedCardAnalysis(cardName: string, issuingBank: string, country: string, data: ComprehensiveCardAnalysisResponse): void {
-  const dbInstance = getDb();
-  const stmt = dbInstance.prepare('INSERT OR REPLACE INTO CardAnalyses (card_name, issuing_bank, country, analysis_data, base_value, base_value_currency) VALUES (?, ?, ?, ?, ?, ?)');
-  // Stringify complex objects before insertion
-  const dataToStore = {
-    ...data,
-    fees: data.fees ? JSON.stringify(data.fees) : null,
-    milestone_benefits: data.milestone_benefits ? JSON.stringify(data.milestone_benefits) : null,
+export async function setCachedCardAnalysis(
+  cardName: string,
+  issuingBank: string,
+  country: string,
+  data: ComprehensiveCardAnalysisResponse
+): Promise<void> {
+  const { error } = await supabase
+    .from('card_analyses')
+    .upsert(
+      {
+        card_name: cardName,
+        issuing_bank: issuingBank,
+        country: country,
+        analysis_data: JSON.stringify(data),
+        base_value: data.base_value,
+        base_value_currency: data.base_value_currency,
+        timestamp: new Date().toISOString(),
+      },
+      { onConflict: 'card_name,issuing_bank,country' }
+    );
+
+  if (error) {
+    console.error('Error setting cached card analysis:', error);
+  }
+}
+
+// --- Card Suggestions Cache Functions ---
+
+export async function getCachedCardSuggestions(
+  bankName: string,
+  country: string
+): Promise<CardProductSuggestionResponse | null> {
+  const { data: cardProducts, error } = await supabase
+    .from('bank_card_products')
+    .select('card_name, brief_description')
+    .eq('bank_name', bankName)
+    .eq('country', country);
+
+  if (error || !cardProducts || cardProducts.length === 0) {
+    return null;
+  }
+
+  // Convert to the expected response format
+  const response: CardProductSuggestionResponse = {
+    issuing_bank: bankName,
+    suggested_cards: cardProducts.map(product => ({
+      card_name: product.card_name,
+      brief_description: product.brief_description || ''
+    }))
   };
-  stmt.run(
-    cardName, 
-    issuingBank, 
-    country, 
-    JSON.stringify(dataToStore),
-    data.base_value,  // Store base_value separately
-    data.base_value_currency  // Store base_value_currency separately
-  );
+  
+  return response;
 }
 
-export function getCachedCardSuggestions(bankName: string, country: string): CardProductSuggestionResponse | null {
-  const dbInstance = getDb();
-  const stmt = dbInstance.prepare('SELECT suggestions_data FROM CardSuggestions WHERE bank_name = ? AND country = ?');
-  const row = stmt.get(bankName, country) as { suggestions_data: string } | undefined;
-
-  if (row) {
-    return JSON.parse(row.suggestions_data) as CardProductSuggestionResponse;
+export async function setCachedCardSuggestions(
+  bankName: string,
+  country: string,
+  data: CardProductSuggestionResponse
+): Promise<void> {
+  if (!data.suggested_cards || data.suggested_cards.length === 0) {
+    console.error('No card products to store');
+    return;
   }
-  return null;
+
+  // Create an array of records to insert
+  const cardProducts = data.suggested_cards.map(card => ({
+    bank_name: bankName,
+    country: country,
+    card_name: card.card_name,
+    brief_description: card.brief_description || null,
+    timestamp: new Date().toISOString()
+  }));
+
+  // Use upsert to handle conflicts with existing records
+  const { error } = await supabase
+    .from('bank_card_products')
+    .upsert(
+      cardProducts,
+      { onConflict: 'bank_name,card_name,country' }
+    );
+
+  if (error) {
+    console.error('Error storing card products:', error);
+  }
 }
 
-export function setCachedCardSuggestions(bankName: string, country: string, data: CardProductSuggestionResponse): void {
-  const dbInstance = getDb();
-  const stmt = dbInstance.prepare('INSERT OR REPLACE INTO CardSuggestions (bank_name, country, suggestions_data) VALUES (?, ?, ?)');
-  stmt.run(bankName, country, JSON.stringify(data));
+/**
+ * Get all available bank card products from a specific bank
+ * @param bankName Name of the bank to get card products for
+ * @param country Country to get card products for
+ * @returns Array of card products
+ */
+export async function getBankCardProducts(
+  bankName?: string,
+  country?: string
+): Promise<Array<{
+  id: string;
+  bankName: string;
+  cardName: string;
+  country: string;
+  briefDescription?: string;
+  timestamp: string;
+}>> {
+  let query = supabase
+    .from('bank_card_products')
+    .select('*');
+  
+  if (bankName) {
+    query = query.eq('bank_name', bankName);
+  }
+  
+  if (country) {
+    query = query.eq('country', country);
+  }
+  
+  const { data, error } = await query.order('bank_name', { ascending: true });
+  
+  if (error || !data) {
+    console.error('Error fetching bank card products:', error);
+    return [];
+  }
+  
+  // Convert snake_case to camelCase
+  return data.map(product => toCamelCase(product)) as any[];
+}
+
+// --- Partner Programs Functions ---
+
+export async function getCachedCardPartnerPrograms(
+  cardName: string,
+  issuingBank: string,
+  country: string
+): Promise<CardPartnerProgramsResponse | null> {
+  const { data, error } = await supabase
+    .from('partner_programs')
+    .select('*')
+    .eq('card_name', cardName)
+    .eq('issuing_bank', issuingBank)
+    .eq('country', country)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(data.partners_data) as CardPartnerProgramsResponse;
+  } catch (e) {
+    console.error('Error parsing partner programs data:', e);
+    return null;
+  }
+}
+
+export async function setCachedCardPartnerPrograms(
+  cardName: string,
+  issuingBank: string,
+  country: string,
+  data: CardPartnerProgramsResponse
+): Promise<void> {
+  const { error } = await supabase
+    .from('partner_programs')
+    .upsert(
+      {
+        card_name: cardName,
+        issuing_bank: issuingBank,
+        country: country,
+        partners_data: JSON.stringify(data),
+        timestamp: new Date().toISOString(),
+      },
+      { onConflict: 'card_name,issuing_bank,country' }
+    );
+
+  if (error) {
+    console.error('Error setting cached partner programs:', error);
+  }
 }
 
 // --- User Card Functions ---
+
 export interface UserCard {
   id: string;
   userId: string;
@@ -150,76 +236,144 @@ export interface UserCard {
 }
 
 export async function getUserCards(userId: string): Promise<(UserCard & { approxPointsValue?: number; base_value_currency?: string })[]> {
-  const dbInstance = getDb();
-  
-  // Query that joins UserCards with CardAnalyses table to get base_value for calculation
-  const stmt = dbInstance.prepare(`
-    SELECT uc.*, ca.base_value, ca.base_value_currency
-    FROM UserCards uc
-    LEFT JOIN CardAnalyses ca ON 
-      uc.cardProductName = ca.card_name AND 
-      uc.issuingBank = ca.issuing_bank AND
-      uc.country = ca.country
-    WHERE uc.userId = ?
-  `);
-  
-  const rows = stmt.all(userId) as any[];
-  
-  return rows.map(row => {
-    // Calculate approx value if both pointsBalance and base_value are available
-    const approxPointsValue = 
-      row.pointsBalance && row.base_value 
-        ? row.pointsBalance * row.base_value 
-        : undefined;
-    
-    return {
-      ...row,
-      pointsBalance: row.pointsBalance || undefined,
-      last4Digits: row.last4Digits || undefined,
-      base_value_currency: row.base_value_currency || undefined,
-      approxPointsValue,
-      cardAnalysisData: row.cardAnalysisData ? parseJSONSafe<ComprehensiveCardAnalysisResponse>(row.cardAnalysisData) : undefined
-    };
-  });
+  // First get all user cards
+  const { data: userCards, error: cardsError } = await supabase
+    .from('user_cards')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (cardsError || !userCards) {
+    return [];
+  }
+
+  // For each card, get the card analysis data to calculate approxPointsValue
+  const cards = await Promise.all(
+    userCards.map(async (card) => {
+      const camelCard = toCamelCase(card) as any;
+      
+      // Format to match the UserCard interface
+      const userCard: UserCard = {
+        id: camelCard.id,
+        userId: camelCard.userId,
+        bin: camelCard.bin,
+        cardProductName: camelCard.cardProductName,
+        issuingBank: camelCard.issuingBank,
+        network: camelCard.network,
+        country: camelCard.country,
+        pointsBalance: camelCard.pointsBalance,
+        last4Digits: camelCard.last4Digits,
+        cardAnalysisData: camelCard.cardAnalysisData 
+          ? JSON.parse(camelCard.cardAnalysisData)
+          : null,
+        addedDate: camelCard.addedDate,
+      };
+
+      // Get card analysis for base value
+      let baseValue: number | null = null;
+      let baseValueCurrency: string | null = null;
+
+      if (!userCard.cardAnalysisData) {
+        const { data: analysisData } = await supabase
+          .from('card_analyses')
+          .select('base_value, base_value_currency')
+          .eq('card_name', userCard.cardProductName)
+          .eq('issuing_bank', userCard.issuingBank)
+          .eq('country', userCard.country)
+          .single();
+
+        if (analysisData) {
+          baseValue = analysisData.base_value;
+          baseValueCurrency = analysisData.base_value_currency;
+        }
+      } else {
+        baseValue = userCard.cardAnalysisData.base_value;
+        baseValueCurrency = userCard.cardAnalysisData.base_value_currency;
+      }
+
+      // Calculate approximate points value if possible
+      const approxPointsValue = 
+        userCard.pointsBalance && baseValue 
+          ? userCard.pointsBalance * baseValue 
+          : undefined;
+
+      return {
+        ...userCard,
+        approxPointsValue,
+        base_value_currency: baseValueCurrency || undefined,
+      };
+    })
+  );
+
+  return cards;
 }
 
 export async function getCardById(userId: string, cardId: string): Promise<(UserCard & { approxPointsValue?: number; base_value_currency?: string }) | undefined> {
-  const dbInstance = getDb();
+  const { data: card, error } = await supabase
+    .from('user_cards')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('id', cardId)
+    .single();
+
+  if (error || !card) {
+    return undefined;
+  }
+
+  const camelCard = toCamelCase(card) as any;
   
-  // Similar join query as getUserCards but with specific card ID condition
-  const stmt = dbInstance.prepare(`
-    SELECT uc.*, ca.base_value, ca.base_value_currency
-    FROM UserCards uc
-    LEFT JOIN CardAnalyses ca ON 
-      uc.cardProductName = ca.card_name AND 
-      uc.issuingBank = ca.issuing_bank AND
-      uc.country = ca.country
-    WHERE uc.userId = ? AND uc.id = ?
-  `);
-  
-  const row = stmt.get(userId, cardId) as any;
-  
-  if (!row) return undefined;
-  
-  // Calculate approx value if both pointsBalance and base_value are available
+  // Format to match the UserCard interface
+  const userCard: UserCard = {
+    id: camelCard.id,
+    userId: camelCard.userId,
+    bin: camelCard.bin,
+    cardProductName: camelCard.cardProductName,
+    issuingBank: camelCard.issuingBank,
+    network: camelCard.network,
+    country: camelCard.country,
+    pointsBalance: camelCard.pointsBalance,
+    last4Digits: camelCard.last4Digits,
+    cardAnalysisData: camelCard.cardAnalysisData 
+      ? JSON.parse(camelCard.cardAnalysisData)
+      : null,
+    addedDate: camelCard.addedDate,
+  };
+
+  // Get card analysis for base value
+  let baseValue: number | null = null;
+  let baseValueCurrency: string | null = null;
+
+  if (!userCard.cardAnalysisData) {
+    const { data: analysisData } = await supabase
+      .from('card_analyses')
+      .select('base_value, base_value_currency')
+      .eq('card_name', userCard.cardProductName)
+      .eq('issuing_bank', userCard.issuingBank)
+      .eq('country', userCard.country)
+      .single();
+
+    if (analysisData) {
+      baseValue = analysisData.base_value;
+      baseValueCurrency = analysisData.base_value_currency;
+    }
+  } else {
+    baseValue = userCard.cardAnalysisData.base_value;
+    baseValueCurrency = userCard.cardAnalysisData.base_value_currency;
+  }
+
+  // Calculate approximate points value if possible
   const approxPointsValue = 
-    row.pointsBalance && row.base_value 
-      ? row.pointsBalance * row.base_value 
+    userCard.pointsBalance && baseValue 
+      ? userCard.pointsBalance * baseValue 
       : undefined;
-  
+
   return {
-    ...row,
-    pointsBalance: row.pointsBalance || undefined,
-    last4Digits: row.last4Digits || undefined,
-    base_value_currency: row.base_value_currency || undefined,
+    ...userCard,
     approxPointsValue,
-    cardAnalysisData: row.cardAnalysisData ? parseJSONSafe<ComprehensiveCardAnalysisResponse>(row.cardAnalysisData) : undefined
+    base_value_currency: baseValueCurrency || undefined,
   };
 }
 
 export async function addUserCard(userId: string, cardData: Omit<UserCard, 'id' | 'addedDate' | 'userId'>): Promise<UserCard> {
-  const dbInstance = getDb();
-  
   const newCard: UserCard = {
     ...cardData,
     id: crypto.randomUUID(),
@@ -227,27 +381,23 @@ export async function addUserCard(userId: string, cardData: Omit<UserCard, 'id' 
     addedDate: new Date().toISOString(),
   };
   
-  const stmt = dbInstance.prepare(`
-    INSERT INTO UserCards (
-      id, userId, bin, cardProductName, issuingBank, network, country,
-      pointsBalance, last4Digits, cardAnalysisData, addedDate
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  
-  stmt.run(
-    newCard.id,
-    newCard.userId,
-    newCard.bin,
-    newCard.cardProductName,
-    newCard.issuingBank,
-    newCard.network,
-    newCard.country,
-    newCard.pointsBalance || null,
-    newCard.last4Digits || null,
-    newCard.cardAnalysisData ? JSON.stringify(newCard.cardAnalysisData) : null,
-    newCard.addedDate
-  );
-  
+  // Convert to snake_case for Supabase
+  const snakeCard = toSnakeCase(newCard);
+
+  // Special handling for cardAnalysisData
+  if (newCard.cardAnalysisData) {
+    snakeCard.card_analysis_data = JSON.stringify(newCard.cardAnalysisData);
+  }
+
+  const { error } = await supabase
+    .from('user_cards')
+    .insert(snakeCard);
+
+  if (error) {
+    console.error('Error adding user card:', error);
+    throw new Error('Failed to add user card');
+  }
+
   return newCard;
 }
 
@@ -256,48 +406,43 @@ export async function updateUserCard(
   cardId: string, 
   updates: Partial<Omit<UserCard, 'id' | 'userId' | 'addedDate'>>
 ): Promise<UserCard | null> {
-  const dbInstance = getDb();
-  
   // First check if the card exists
   const existingCard = await getCardById(userId, cardId);
   if (!existingCard) {
     return null;
   }
-  
-  // Build the update SQL dynamically based on what fields are being updated
-  const updateFields: string[] = [];
-  const params: any[] = [];
-  
-  for (const [key, value] of Object.entries(updates)) {
-    if (key === 'cardAnalysisData') {
-      updateFields.push(`${key} = ?`);
-      params.push(value ? JSON.stringify(value) : null);
-    } else {
-      updateFields.push(`${key} = ?`);
-      params.push(value === undefined ? null : value);
-    }
+
+  // Convert to snake_case for Supabase
+  const snakeUpdates = toSnakeCase(updates);
+
+  // Special handling for cardAnalysisData
+  if (updates.cardAnalysisData) {
+    snakeUpdates.card_analysis_data = JSON.stringify(updates.cardAnalysisData);
   }
-  
-  if (updateFields.length === 0) {
-    return existingCard; // Nothing to update
+
+  const { error } = await supabase
+    .from('user_cards')
+    .update(snakeUpdates)
+    .eq('user_id', userId)
+    .eq('id', cardId);
+
+  if (error) {
+    console.error('Error updating user card:', error);
+    throw new Error('Failed to update user card');
   }
-  
-  const updateSQL = `UPDATE UserCards SET ${updateFields.join(', ')} WHERE userId = ? AND id = ?`;
-  params.push(userId, cardId);
-  
-  const stmt = dbInstance.prepare(updateSQL);
-  stmt.run(...params);
-  
+
   // Return the updated card
   return await getCardById(userId, cardId) as UserCard;
 }
 
 export async function deleteUserCard(userId: string, cardId: string): Promise<boolean> {
-  const dbInstance = getDb();
-  const stmt = dbInstance.prepare('DELETE FROM UserCards WHERE userId = ? AND id = ?');
-  const result = stmt.run(userId, cardId);
-  
-  return result.changes > 0;
+  const { error } = await supabase
+    .from('user_cards')
+    .delete()
+    .eq('user_id', userId)
+    .eq('id', cardId);
+
+  return !error;
 }
 
 export async function storeCardAnalysisForUserCard(
@@ -308,5 +453,132 @@ export async function storeCardAnalysisForUserCard(
   return updateUserCard(userId, cardId, { cardAnalysisData: analysisData });
 }
 
-// Initialize tables on module load
-createTables(); 
+// --- Card Points History Functions ---
+
+export async function addCardPointsEntry(entry: Omit<CardPointsEntry, 'id' | 'createdAt'>): Promise<CardPointsEntry> {
+  // Check if the card exists for this user
+  const cardExists = await checkCardExists(entry.userId, entry.cardId);
+  if (!cardExists) {
+    throw new Error('Card not found. Cannot add points for a non-existent card.');
+  }
+  
+  // Validate month range
+  if (entry.month < 1 || entry.month > 12) {
+    throw new Error('Month must be between 1 and 12.');
+  }
+  
+  const newEntry: CardPointsEntry = {
+    ...entry,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+  };
+  
+  // Convert to snake_case for Supabase
+  const snakeEntry = toSnakeCase(newEntry);
+  
+  // Check if an entry already exists for this month/year/card
+  const { data: existingEntry } = await supabase
+    .from('card_points_history')
+    .select('id')
+    .eq('user_id', entry.userId)
+    .eq('card_id', entry.cardId)
+    .eq('year', entry.year)
+    .eq('month', entry.month)
+    .single();
+  
+  if (existingEntry) {
+    // Update existing entry
+    const { error } = await supabase
+      .from('card_points_history')
+      .update({ 
+        points_balance: newEntry.pointsBalance,
+        created_at: newEntry.createdAt 
+      })
+      .eq('id', existingEntry.id);
+    
+    if (error) {
+      console.error('Error updating card points entry:', error);
+      throw new Error('Failed to update card points entry');
+    }
+  } else {
+    // Insert new entry
+    const { error } = await supabase
+      .from('card_points_history')
+      .insert(snakeEntry);
+    
+    if (error) {
+      console.error('Error adding card points entry:', error);
+      throw new Error('Failed to add card points entry');
+    }
+  }
+  
+  return newEntry;
+}
+
+export async function getCardPointsHistory(
+  userId: string,
+  options?: {
+    cardId?: string;
+    startYear?: number;
+    startMonth?: number;
+    endYear?: number;
+    endMonth?: number;
+  }
+): Promise<CardPointsEntry[]> {
+  let query = supabase
+    .from('card_points_history')
+    .select('*')
+    .eq('user_id', userId);
+  
+  if (options?.cardId) {
+    query = query.eq('card_id', options.cardId);
+  }
+  
+  // Handle date range filtering using Supabase query filtering
+  if (options?.startYear && options?.startMonth) {
+    // Filter for entries after or equal to start year/month
+    query = query.or(`year.gt.${options.startYear},and(year.eq.${options.startYear},month.gte.${options.startMonth})`);
+  } else if (options?.startYear) {
+    query = query.gte('year', options.startYear);
+  }
+  
+  if (options?.endYear && options?.endMonth) {
+    // Filter for entries before or equal to end year/month
+    query = query.or(`year.lt.${options.endYear},and(year.eq.${options.endYear},month.lte.${options.endMonth})`);
+  } else if (options?.endYear) {
+    query = query.lte('year', options.endYear);
+  }
+  
+  // Order by year and month
+  query = query.order('year', { ascending: true }).order('month', { ascending: true });
+  
+  const { data, error } = await query;
+  
+  if (error || !data) {
+    console.error('Error getting card points history:', error);
+    return [];
+  }
+  
+  // Convert snake_case to camelCase
+  return data.map(entry => ({
+    id: entry.id,
+    userId: entry.user_id,
+    cardId: entry.card_id,
+    year: entry.year,
+    month: entry.month,
+    pointsBalance: entry.points_balance,
+    createdAt: entry.created_at
+  }));
+}
+
+// Helper function to check if a card exists for a user
+async function checkCardExists(userId: string, cardId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('user_cards')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('id', cardId)
+    .single();
+  
+  return !!data;
+} 
