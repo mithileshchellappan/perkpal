@@ -12,12 +12,12 @@ import {
  * GET user cards
  */
 export async function GET(request: Request) {
-  // const { userId } = await auth(); // Get userId from Clerk
+  const { userId } = await auth(); // Get userId from Clerk
 
-  // if (!userId) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-  const userId = 'test'
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
 
   try {
     const cards = await getUserCards(userId);
@@ -35,29 +35,29 @@ export async function GET(request: Request) {
  * POST - Add a new card for a user
  */
 export async function POST(request: Request) {
-  // const { userId } = await auth(); // Get userId from Clerk
+  const { userId } = await auth(); // Get userId from Clerk
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-  // if (!userId) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-
-  const userId = 'test'
 
   try {
     const body = await request.json();
+    console.log("body", body)
     const {
       bin,
       cardProductName,
-      issuingBank,
+      bank,
       network,
       pointsBalance,
       country,
     } = body;
 
     // Basic validation
-    if (!bin || !cardProductName || !issuingBank || !network || !country) {
+    if (!bin || !cardProductName || !bank || !network || !country) {
+      console.log("Missing required card fields: bin, cardProductName, bank, network, country")
       return NextResponse.json(
-        { error: 'Missing required card fields: bin, cardProductName, issuingBank, network, country' }, 
+        { error: 'Missing required card fields: bin, cardProductName, bank, network, country' }, 
         { status: 400 }
       );
     }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     const newCardData = {
       bin,
       cardProductName,
-      issuingBank,
+      bank,
       network,
       country,
       pointsBalance: pointsBalance ? Number(pointsBalance) : undefined,
@@ -83,6 +83,3 @@ export async function POST(request: Request) {
     );
   }
 }
-
-// You could add PUT and DELETE handlers here as well, using updateUserCard and deleteUserCard from db.ts
-// For example, a PUT request to /api/user-cards/[cardId] or a DELETE request. 

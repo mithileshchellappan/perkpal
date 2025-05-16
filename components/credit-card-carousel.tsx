@@ -263,14 +263,20 @@ export function CreditCard({ card, isActive, isSelected = false, hideDetails = f
         {!hideDetails && (
           <div className="mt-4">
             <p className="text-xs text-white/80">Card Number</p>
-            <p className="font-mono text-white">•••• •••• •••• {card.lastFourDigits || "••••"}</p>
+            {card.number ? (
+              <p className="font-mono text-white">
+                {card.number.toString().slice(0, 4)} {card.number.toString().slice(4, 8)} •••• ••••
+              </p>
+            ) : (
+              <p className="font-mono text-white">•••• •••• •••• ••••</p>
+            )}
           </div>
         )}
 
         <div className="flex justify-between items-end mt-4">
           <div>
             <p className="text-xs text-white/80">Card Name</p>
-            <p className="font-bold text-white">{card.name}</p>
+            <p className="font-bold text-white">{card.name.replace(card.issuer.replace('Bank', ''), '')}</p>
           </div>
           {!hideDetails && card.pointsBalance > 0 && (
             <div className="text-right">

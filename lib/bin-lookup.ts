@@ -23,7 +23,7 @@ export async function lookupBin(bin: string): Promise<BinLookupResult | null> {
       network: data.data.card.scheme,
       cardTypes: cardTypes.map((card: any) => card.card_name)
     }
-
+    
     return returnObj
   }
 

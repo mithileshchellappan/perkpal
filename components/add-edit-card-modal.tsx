@@ -21,6 +21,7 @@ import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card } from "@/components/ui/card"
 import { CardNetworkLogo } from "@/components/card-network-logos"
+import { addCardToDB } from "@/lib/api-calls"
 
 interface AddEditCardModalProps {
   open: boolean
@@ -54,7 +55,7 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
       rewardsRate: 1,
       status: "Active",
       color: "#ff6b00",
-      network: "other",
+      network: "other"
     },
   )
 
@@ -78,6 +79,7 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
           status: "Active",
           color: "#ff6b00",
           network: "other",
+          number: -1
         })
       } else {
         setStep("card-details")
@@ -94,12 +96,15 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
     try {
       const result = await lookupBin(binNumber)
       if (result) {
-        setBinResult(result)
-        setFormData({
+        const cardData = {
           ...formData,
           issuer: result.bank,
           network: result.network,
-        })
+          number: parseInt(binNumber),
+          country: result.country
+        }
+        setBinResult(result)
+        setFormData(cardData)
         setStep("card-details")
         setBinError(null)
       } else {
@@ -155,13 +160,13 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
       // In a real app, we would fetch these values from the backend
       // For now, we'll set some default values
       const cashValue = formData.pointsBalance * 0.02 // Assume 2 cents per point
-      onSave({
+      const saveData = {
         ...formData,
-        cashValue,
-        annualFee: 95, // Default annual fee
-        rewardsRate: 2, // Default rewards rate
-        expiryDate: "12/28", // Default expiry date
-      })
+        number: parseInt(binNumber)
+      }
+      console.log("saveData", saveData)
+      onSave(saveData)
+      addCardToDB(saveData).then(() => {})
     }
   }
 

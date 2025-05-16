@@ -30,6 +30,7 @@ export interface CreditCardType {
   name: string
   issuer: string
   pointsBalance: number
+  number?: number
   cashValue: number
   annualFee: number
   expiryDate: string
@@ -38,4 +39,5 @@ export interface CreditCardType {
   color?: string
   secondaryColor?: string
   network?: string
+  country?: string
 }

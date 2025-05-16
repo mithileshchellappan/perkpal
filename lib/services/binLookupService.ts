@@ -59,12 +59,8 @@ export async function lookupBinUsingAPI(bin: string): Promise<any> {
   }
 }
 
-/**
- * Lookup a BIN, trying multiple methods if necessary
- */
 export async function lookupBin(bin: string): Promise<BinLookupResponse> {
   try {
-    // First try the library approach
     return await lookupBinUsingAPI(bin);
   } catch (error) {
     throw error;

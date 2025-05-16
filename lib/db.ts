@@ -226,7 +226,7 @@ export interface UserCard {
   userId: string;
   bin: string;
   cardProductName: string;
-  issuingBank: string;
+  bank: string;
   network: string;
   country: string;
   pointsBalance?: number;
@@ -257,7 +257,7 @@ export async function getUserCards(userId: string): Promise<(UserCard & { approx
         userId: camelCard.userId,
         bin: camelCard.bin,
         cardProductName: camelCard.cardProductName,
-        issuingBank: camelCard.issuingBank,
+        bank: camelCard.bank,
         network: camelCard.network,
         country: camelCard.country,
         pointsBalance: camelCard.pointsBalance,
@@ -277,7 +277,7 @@ export async function getUserCards(userId: string): Promise<(UserCard & { approx
           .from('card_analyses')
           .select('base_value, base_value_currency')
           .eq('card_name', userCard.cardProductName)
-          .eq('issuing_bank', userCard.issuingBank)
+          .eq('issuing_bank', userCard.bank)
           .eq('country', userCard.country)
           .single();
 
@@ -327,7 +327,7 @@ export async function getCardById(userId: string, cardId: string): Promise<(User
     userId: camelCard.userId,
     bin: camelCard.bin,
     cardProductName: camelCard.cardProductName,
-    issuingBank: camelCard.issuingBank,
+    bank: camelCard.bank,
     network: camelCard.network,
     country: camelCard.country,
     pointsBalance: camelCard.pointsBalance,
@@ -347,7 +347,7 @@ export async function getCardById(userId: string, cardId: string): Promise<(User
       .from('card_analyses')
       .select('base_value, base_value_currency')
       .eq('card_name', userCard.cardProductName)
-      .eq('issuing_bank', userCard.issuingBank)
+      .eq('bank', userCard.bank)
       .eq('country', userCard.country)
       .single();
 
