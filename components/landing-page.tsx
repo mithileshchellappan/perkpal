@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { CreditCard, Gift, BarChart, Bot, FileText, Zap, Shield, TrendingUp } from "lucide-react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 interface LandingPageProps {
   onLogin: () => void
@@ -14,14 +15,12 @@ interface LandingPageProps {
 
 export function LandingPage({ onLogin }: LandingPageProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   const handleLogin = () => {
     setIsLoading(true)
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false)
-      onLogin()
-    }, 1500)
+    // Redirect to the Clerk sign-in page
+    router.push('/sign-in')
   }
 
   return (

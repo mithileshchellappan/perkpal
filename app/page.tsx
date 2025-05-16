@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { LayoutDashboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -21,14 +21,15 @@ import { LandingPage } from "@/components/landing-page"
 import type { CreditCardType } from "@/lib/types"
 import { CreditCard, Gift, Globe, BarChart, Tag, Bot, Search } from "lucide-react"
 import { generateColorFromString } from "@/lib/utils"
+import { useAuth } from "@clerk/nextjs"
 
-// Sample data
+// Sample data - update CreditCardType to include lastFourDigits
 const initialCards: CreditCardType[] = [
   {
     id: "1",
     name: "Sapphire Preferred",
     issuer: "Chase",
-    lastFourDigits: "4567",
+    number: "XXXX-XXXX-XXXX-4567",
     pointsBalance: 54892,
     cashValue: 1097.84,
     annualFee: 95,
@@ -43,7 +44,7 @@ const initialCards: CreditCardType[] = [
     id: "2",
     name: "Gold Card",
     issuer: "American Express",
-    lastFourDigits: "7890",
+    number: "XXXX-XXXX-XXXX-7890",
     pointsBalance: 32450,
     cashValue: 649.0,
     annualFee: 250,
@@ -58,7 +59,7 @@ const initialCards: CreditCardType[] = [
     id: "3",
     name: "Venture X",
     issuer: "Capital One",
-    lastFourDigits: "1234",
+    number: "XXXX-XXXX-XXXX-1234",
     pointsBalance: 87650,
     cashValue: 876.5,
     annualFee: 395,
@@ -73,7 +74,7 @@ const initialCards: CreditCardType[] = [
     id: "4",
     name: "Freedom Unlimited",
     issuer: "Chase",
-    lastFourDigits: "9876",
+    number: "XXXX-XXXX-XXXX-9876",
     pointsBalance: 12345,
     cashValue: 123.45,
     annualFee: 0,
@@ -88,7 +89,7 @@ const initialCards: CreditCardType[] = [
     id: "5",
     name: "Atlas Credit Card",
     issuer: "Axis Bank",
-    lastFourDigits: "5678",
+    number: "XXXX-XXXX-XXXX-5678",
     pointsBalance: 45678,
     cashValue: 456.78,
     annualFee: 5000,
@@ -101,15 +102,9 @@ const initialCards: CreditCardType[] = [
   },
 ]
 
-// Sample user
-const user = {
-  name: "Alex Johnson",
-  email: "alex@example.com",
-  image: "/placeholder.svg?height=32&width=32",
-}
-
 export default function Page() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const { isLoaded, isSignedIn } = useAuth()
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true)
   const [cards, setCards] = useState<CreditCardType[]>(initialCards)
   const [selectedCard, setSelectedCard] = useState<CreditCardType | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -121,6 +116,12 @@ export default function Page() {
   const totalPoints = cards.reduce((sum, card) => sum + card.pointsBalance, 0)
   const totalCashValue = cards.reduce((sum, card) => sum + card.cashValue, 0)
   const totalAnnualFees = cards.reduce((sum, card) => sum + card.annualFee, 0)
+
+  useEffect(() => {
+    if (isLoaded) {
+      setIsLoadingAuth(false)
+    }
+  }, [isLoaded])
 
   const handleAddCard = (card: CreditCardType) => {
     setCards([...cards, card])
@@ -136,10 +137,14 @@ export default function Page() {
   }
 
   const handleLogin = () => {
-    setIsLoggedIn(true)
+    // This is now handled by Clerk in the LandingPage component
   }
 
-  if (!isLoggedIn) {
+  if (isLoadingAuth) {
+    return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>
+  }
+
+  if (!isSignedIn) {
     return <LandingPage onLogin={handleLogin} />
   }
 
@@ -219,7 +224,7 @@ export default function Page() {
           </nav>
 
           <div className="mt-auto border-t pt-2 p-2">
-            <UserProfile user={user} />
+            <UserProfile />
           </div>
         </aside>
         <main className="p-6 overflow-auto h-screen">

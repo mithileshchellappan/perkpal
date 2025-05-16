@@ -161,7 +161,6 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
         annualFee: 95, // Default annual fee
         rewardsRate: 2, // Default rewards rate
         expiryDate: "12/28", // Default expiry date
-        lastFourDigits: binNumber.slice(-4) || "1234", // Use last 4 digits from BIN or default
       })
     }
   }
@@ -197,11 +196,6 @@ export function AddEditCardModal({ open, onOpenChange, card, onSave }: AddEditCa
                 <CardNetworkLogo network={formData.network} />
               </div>
             )}
-          </div>
-
-          <div className="mt-2">
-            <p className="text-xs text-white/70">Card Number</p>
-            <p className="font-mono text-white">•••• •••• •••• ••••</p>
           </div>
 
           <div className="flex justify-between items-end mt-2">

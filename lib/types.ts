@@ -29,7 +29,6 @@ export interface CreditCardType {
   id: string
   name: string
   issuer: string
-  lastFourDigits: string
   pointsBalance: number
   cashValue: number
   annualFee: number
