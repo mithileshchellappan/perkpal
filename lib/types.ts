@@ -24,3 +24,19 @@ export interface Message {
   timestamp: string
   component?: string
 }
+
+export interface CreditCardType {
+  id: string
+  name: string
+  issuer: string
+  lastFourDigits: string
+  pointsBalance: number
+  cashValue: number
+  annualFee: number
+  expiryDate: string
+  rewardsRate: number
+  status: "Active" | "Inactive"
+  color?: string
+  secondaryColor?: string
+  network?: string
+}
