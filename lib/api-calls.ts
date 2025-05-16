@@ -4,7 +4,7 @@ export const addCardToDB = async (cardData: CreditCardType) => {
     console.log("cardData", cardData)
     const data = {
         bin: cardData.number,
-        cardProductName: cardData.name,
+        cardName: cardData.name,
         bank: cardData.issuer,
         network: cardData.network,
         country: cardData.country,

@@ -12,11 +12,13 @@ import {
  * GET user cards
  */
 export async function GET(request: Request) {
-  const { userId } = await auth(); // Get userId from Clerk
+  // const { userId } = await auth(); // Get userId from Clerk
 
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // if (!userId) {
+  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // }
+
+  const userId = 'test'
 
 
   try {
@@ -35,18 +37,19 @@ export async function GET(request: Request) {
  * POST - Add a new card for a user
  */
 export async function POST(request: Request) {
-  const { userId } = await auth(); // Get userId from Clerk
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // const { userId } = await auth(); // Get userId from Clerk
+  // if (!userId) {
+  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // }
 
+  const userId = 'test'
 
   try {
     const body = await request.json();
     console.log("body", body)
     const {
       bin,
-      cardProductName,
+      cardName,
       bank,
       network,
       pointsBalance,
@@ -54,17 +57,17 @@ export async function POST(request: Request) {
     } = body;
 
     // Basic validation
-    if (!bin || !cardProductName || !bank || !network || !country) {
-      console.log("Missing required card fields: bin, cardProductName, bank, network, country")
+    if (!bin || !cardName || !bank || !network || !country) {
+      console.log("Missing required card fields: bin, cardName, bank, network, country")
       return NextResponse.json(
-        { error: 'Missing required card fields: bin, cardProductName, bank, network, country' }, 
+        { error: 'Missing required card fields: bin, cardName, bank, network, country' }, 
         { status: 400 }
       );
     }
 
     const newCardData = {
       bin,
-      cardProductName,
+      cardName,
       bank,
       network,
       country,

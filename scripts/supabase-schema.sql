@@ -1,8 +1,8 @@
 -- Supabase SQL migration script
 -- Run this in the Supabase SQL Editor to create the required tables
 
--- Table for storing card analyses
-CREATE TABLE IF NOT EXISTS card_analyses (
+-- Table for storing card analysis
+CREATE TABLE IF NOT EXISTS card_analysis (
   card_name TEXT NOT NULL,
   issuing_bank TEXT NOT NULL,
   country TEXT NOT NULL,

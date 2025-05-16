@@ -155,7 +155,7 @@ export async function storeStatementAnalysis(
     
     // Example database storage code:
     // const db = getDatabase();
-    // await db.collection('statementAnalyses').insertOne(analysis);
+    // await db.collection('statementanalysis').insertOne(analysis);
     
     return analysis;
   } catch (error) {

@@ -225,7 +225,7 @@ export interface UserCard {
   id: string;
   userId: string;
   bin: string;
-  cardProductName: string;
+  cardName: string;
   bank: string;
   network: string;
   country: string;
@@ -256,12 +256,11 @@ export async function getUserCards(userId: string): Promise<(UserCard & { approx
         id: camelCard.id,
         userId: camelCard.userId,
         bin: camelCard.bin,
-        cardProductName: camelCard.cardProductName,
+        cardName: camelCard.cardName,
         bank: camelCard.bank,
         network: camelCard.network,
         country: camelCard.country,
         pointsBalance: camelCard.pointsBalance,
-        last4Digits: camelCard.last4Digits,
         cardAnalysisData: camelCard.cardAnalysisData 
           ? JSON.parse(camelCard.cardAnalysisData)
           : null,
@@ -276,7 +275,7 @@ export async function getUserCards(userId: string): Promise<(UserCard & { approx
         const { data: analysisData } = await supabase
           .from('card_analyses')
           .select('base_value, base_value_currency')
-          .eq('card_name', userCard.cardProductName)
+          .eq('card_name', userCard.cardName)
           .eq('issuing_bank', userCard.bank)
           .eq('country', userCard.country)
           .single();
@@ -326,7 +325,7 @@ export async function getCardById(userId: string, cardId: string): Promise<(User
     id: camelCard.id,
     userId: camelCard.userId,
     bin: camelCard.bin,
-    cardProductName: camelCard.cardProductName,
+    cardName: camelCard.cardName,
     bank: camelCard.bank,
     network: camelCard.network,
     country: camelCard.country,
@@ -346,7 +345,7 @@ export async function getCardById(userId: string, cardId: string): Promise<(User
     const { data: analysisData } = await supabase
       .from('card_analyses')
       .select('base_value, base_value_currency')
-      .eq('card_name', userCard.cardProductName)
+      .eq('card_name', userCard.cardName)
       .eq('bank', userCard.bank)
       .eq('country', userCard.country)
       .single();
