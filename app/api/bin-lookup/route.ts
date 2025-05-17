@@ -25,17 +25,8 @@ export async function POST(request: Request) {
     }
     
     // Lookup the BIN
-    const binInfo = {
-      bin: '45854600',
-      bank: { name: 'American Express', url: '', phone: '', city: '' },
-      card: {
-        type: 'debit',
-        category: '',
-        scheme: 'visa',
-        brand: 'Visa Platinum'
-      },
-      country: { name: 'India', alpha2: 'IN', numeric: '356', currency: 'INR' }
-    }
+    const binInfo = await lookupBin(bin);
+    console.log(binInfo)
     return NextResponse.json({
       success: true,
       data: binInfo,

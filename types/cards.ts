@@ -36,6 +36,7 @@ export const ComprehensiveCardAnalysisResponseSchema = z.object({
   issuing_bank: z.string(),
   base_value: z.number().nullable(),
   base_value_currency: z.string().nullable(),
+  annual_fee: z.number().nullable(),
   earning_rewards: z.array(
     z.object({
       category: z.string(),

@@ -1,5 +1,5 @@
 import { supabase, toCamelCase, toSnakeCase } from './supabase';
-import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse as InternalComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse } from '@/types/cards';
+import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse as InternalComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse, PromotionSpotlightResponse } from '@/types/cards';
 import { CardPointsEntry } from '@/types/points';
 
 // Re-export for use in other modules if needed, or use the internal one directly if not meant to be widely public
@@ -61,6 +61,7 @@ export async function setCachedCardAnalysis(
         analysis_data: JSON.stringify(data),
         base_value: data.base_value,
         base_value_currency: data.base_value_currency,
+        annual_fee: data.annual_fee,
         timestamp: new Date().toISOString(),
       },
       { onConflict: 'card_name,issuing_bank,country' }
@@ -219,6 +220,77 @@ export async function setCachedCardPartnerPrograms(
 
   if (error) {
     console.error('Error setting cached partner programs:', error);
+  }
+}
+
+// --- Promotion Cache Functions ---
+
+export async function getCachedPromotions(
+  cardName: string,
+  issuingBank: string,
+  country: string,
+  rewardsProgramKey: string // Normalized: empty string if null/undefined
+): Promise<PromotionSpotlightResponse | null> {
+  if (!supabase) {
+    console.warn('Supabase client not initialized, skipping cache read for promotions.');
+    return null;
+  }
+
+  const { data: cachedEntry, error: cacheSelectError } = await supabase
+    .from('cached_promotions')
+    .select('promotions_data, expires_at')
+    .eq('card_name', cardName)
+    .eq('issuing_bank', issuingBank)
+    .eq('country', country)
+    .eq('rewards_program_key', rewardsProgramKey)
+    .single();
+
+  if (cacheSelectError && cacheSelectError.code !== 'PGRST116') { // PGRST116: row not found
+    console.error('Supabase cache read error for promotions:', cacheSelectError);
+    return null; // Error during read, treat as cache miss
+  }
+
+  if (cachedEntry && new Date(cachedEntry.expires_at) > new Date()) {
+    // Cache hit and valid
+    // Assuming promotions_data is already in the correct PromotionSpotlightResponse format
+    return cachedEntry.promotions_data as PromotionSpotlightResponse;
+  }
+
+  return null; // Cache miss or expired
+}
+
+export async function setCachedPromotions(
+  cardName: string,
+  issuingBank: string,
+  country: string,
+  rewardsProgramKey: string, // Normalized
+  promotionsData: PromotionSpotlightResponse // The full object from Perplexity
+): Promise<void> {
+  if (!supabase) {
+    console.warn('Supabase client not initialized, skipping cache write for promotions.');
+    return;
+  }
+
+  const sevenDaysFromNow = new Date();
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+  const { error: upsertError } = await supabase
+    .from('cached_promotions')
+    .upsert({
+      card_name: cardName,
+      issuing_bank: issuingBank,
+      country: country,
+      rewards_program_key: rewardsProgramKey,
+      promotions_data: promotionsData,
+      fetched_at: new Date().toISOString(),
+      expires_at: sevenDaysFromNow.toISOString(),
+    }, {
+      onConflict: 'card_name,issuing_bank,country,rewards_program_key'
+    });
+
+  if (upsertError) {
+    console.error('Supabase cache upsert error for promotions:', upsertError);
+    // Don't fail the request if cache write fails, just log it
   }
 }
 

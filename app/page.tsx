@@ -47,6 +47,7 @@ export default function Page() {
   const totalPoints = cards.reduce((sum, card) => sum + (card.pointsBalance || 0), 0)
   const totalCashValue = cards.reduce((sum, card) => sum + (card.baseValue || 0), 0)
   const totalAnnualFees = cards.reduce((sum, card) => sum + (card.annualFee || 0), 0)
+  const baseValueCurrency = cards[0]?.currency || "USD"
 
   useEffect(() => {
     if (isLoaded) {
@@ -186,13 +187,13 @@ export default function Page() {
                 />
                 <MetricsCard
                   title="Cash Value"
-                  value={`$${totalCashValue.toLocaleString()}`}
+                  value={`${totalCashValue.toLocaleString()} ${baseValueCurrency}`}
                   icon={<Tag className="h-4 w-4 text-primary" />}
                   change={{ value: "$120.40", percentage: "+3.8%", isPositive: true }}
                 />
                 <MetricsCard
                   title="Annual Fees"
-                  value={`$${totalAnnualFees.toLocaleString()}`}
+                  value={`${totalAnnualFees.toLocaleString()} ${baseValueCurrency}`}
                   icon={<CreditCard className="h-4 w-4 text-primary" />}
                   change={{ value: "$0", percentage: "0%", isPositive: true }}
                 />

@@ -110,6 +110,7 @@ export async function getCardAnalysis(
 
     Include details on earning rewards, redemption options, and strategic insights.
     For monetary values like base point value, provide the amount and its currency (e.g., base_value_currency).
+    Also include a top-level 'annual_fee' as a number (e.g. 99, 0, 550) in the card's local currency.
     
     Detail any applicable fees within a nested 'fees' object. This 'fees' object should include:
     - joining_amount (string with currency)
@@ -137,22 +138,24 @@ export async function getCardAnalysis(
 /**
  * Get current promotions for a card or rewards ecosystem
  * @param cardName The card name or ecosystem to search for promotions
+ * @param issuingBank The issuing bank of the card
  * @param country The country to search for promotions in
  * @param rewardsProgram Optional rewards program name (e.g., "Chase Ultimate Rewards")
  * @returns Current promotions for the card/ecosystem
  */
 export async function getCardPromotions(
   cardName: string,
+  issuingBank: string,
   country: string,
   rewardsProgram?: string
 ): Promise<PromotionSpotlightResponse> {
-  const context = rewardsProgram 
-    ? `${cardName} / ${rewardsProgram} points` 
-    : cardName;
+  const context = rewardsProgram
+    ? `${cardName} (${issuingBank}, ${country}) / ${rewardsProgram} points`
+    : `${cardName} (${issuingBank}, ${country})`;
   
   const systemPrompt = 'You are an AI assistant that provides accurate and concise information about credit card rewards and promotions. You always respond in the requested JSON format without any additional explanatory text or markdown formatting outside of the JSON structure itself.';
   const userPrompt = `
-    Are there any current, publicly available special promotions, transfer bonuses, or limited-time offers for the '${cardName}' card${rewardsProgram ? ` or its '${rewardsProgram}' ecosystem` : ''} in ${country}? Focus on offers that significantly enhance point value.
+    Are there any current, publicly available special promotions, transfer bonuses, or limited-time offers for the '${cardName}' card from '${issuingBank}' in ${country}${rewardsProgram ? ` or its '${rewardsProgram}' ecosystem` : ''}? Focus on offers that significantly enhance point value.
 
     Return the data strictly in the following JSON format. If no specific promotions are found, return an empty 'promotions' array. Ensure the output is only the JSON object.
 

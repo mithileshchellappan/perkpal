@@ -2,13 +2,14 @@
 -- Run this in the Supabase SQL Editor to create the required tables
 
 -- Table for storing card analysis
-CREATE TABLE IF NOT EXISTS card_analysis (
+CREATE TABLE IF NOT EXISTS card_analyses (
   card_name TEXT NOT NULL,
   issuing_bank TEXT NOT NULL,
   country TEXT NOT NULL,
   analysis_data JSONB NOT NULL,
   base_value DECIMAL,
   base_value_currency TEXT,
+  annual_fee DECIMAL,
   timestamp TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (card_name, issuing_bank, country)
 );
@@ -102,4 +103,26 @@ CREATE POLICY card_points_history_update_policy ON card_points_history
   FOR UPDATE USING (user_id = auth.uid()::TEXT);
 
 CREATE POLICY card_points_history_delete_policy ON card_points_history
-  FOR DELETE USING (user_id = auth.uid()::TEXT); 
+  FOR DELETE USING (user_id = auth.uid()::TEXT);
+
+-- Table for cached promotions
+CREATE TABLE IF NOT EXISTS cached_promotions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_name TEXT NOT NULL,
+  issuing_bank TEXT NOT NULL,
+  country TEXT NOT NULL,
+  rewards_program_key TEXT NOT NULL, -- Stores rewardsProgram, or empty string if null/undefined
+  promotions_data JSONB NOT NULL, -- Stores the full object from PromotionSpotlightResponse
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL
+);
+
+-- Create a unique index for cache lookups and upserts
+CREATE UNIQUE INDEX IF NOT EXISTS uq_promotion_cache 
+ON cached_promotions(card_name, issuing_bank, country, rewards_program_key);
+
+-- Optional: Row Level Security (RLS) - By default, table is accessible. 
+-- Consider adding RLS if needed, e.g., allow only service_role to write.
+-- ALTER TABLE cached_promotions ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY "Allow read access to all users" ON cached_promotions FOR SELECT USING (true);
+-- CREATE POLICY "Allow insert/update by service_role" ON cached_promotions FOR ALL USING (auth.role() = 'service_role'); 

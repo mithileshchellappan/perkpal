@@ -28,111 +28,7 @@ interface PromotionResponse {
   }
 }
 
-// Mock API responses for different cards
-const mockPromotions: Record<string, PromotionResponse> = {
-  "Sapphire Preferred": {
-    success: true,
-    data: {
-      card_context: "Chase Sapphire Preferred",
-      promotions: [
-        {
-          promotion_title: "Earn 60,000 Bonus Points",
-          description:
-            "Earn 60,000 bonus points after you spend $4,000 on purchases in the first 3 months from account opening. That's $750 when you redeem through Chase Ultimate Rewards®.",
-          partner_involved: null,
-          offer_type: "Sign Up Bonus",
-          valid_until: "2025-12-31",
-          source_url: "https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred",
-        },
-        {
-          promotion_title: "5X Points on Lyft Rides",
-          description: "Earn 5X total points on Lyft rides through March 2025.",
-          partner_involved: "Lyft",
-          offer_type: "Category Bonus",
-          valid_until: "2025-03-31",
-          source_url: "https://www.chase.com/personal/credit-cards/sapphire/preferred/travel-benefits",
-        },
-        {
-          promotion_title: "10% Anniversary Point Bonus",
-          description:
-            "Each account anniversary, earn bonus points equal to 10% of your total purchases made the previous year.",
-          partner_involved: null,
-          offer_type: "Anniversary Bonus",
-          valid_until: null,
-          source_url: null,
-        },
-      ],
-    },
-  },
-  "Gold Card": {
-    success: true,
-    data: {
-      card_context: "AMEX Gold",
-      promotions: [
-        {
-          promotion_title: "Earn 60,000 Membership Rewards® Points",
-          description:
-            "Earn 60,000 Membership Rewards® points after you spend $4,000 on eligible purchases within the first 6 months of card membership.",
-          partner_involved: null,
-          offer_type: "Sign Up Bonus",
-          valid_until: "2025-06-30",
-          source_url: "https://www.americanexpress.com/us/credit-cards/card/gold-card/",
-        },
-        {
-          promotion_title: "$120 Dining Credit",
-          description:
-            "Earn up to $10 in statement credits monthly when you pay with the Gold Card at participating dining partners.",
-          partner_involved:
-            "Grubhub, The Cheesecake Factory, Goldbelly, Wine.com, Milk Bar and select Shake Shack locations",
-          offer_type: "Statement Credit",
-          valid_until: null,
-          source_url: "https://www.americanexpress.com/us/credit-cards/card/gold-card/",
-        },
-      ],
-    },
-  },
-  "Venture X": {
-    success: true,
-    data: {
-      card_context: "Capital One Venture X",
-      promotions: [
-        {
-          promotion_title: "Earn 75,000 Bonus Miles",
-          description:
-            "Earn 75,000 bonus miles when you spend $4,000 on purchases in the first 3 months from account opening, equal to $750 in travel.",
-          partner_involved: null,
-          offer_type: "Sign Up Bonus",
-          valid_until: "2025-08-15",
-          source_url: "https://www.capitalone.com/credit-cards/venture-x/",
-        },
-        {
-          promotion_title: "$300 Annual Travel Credit",
-          description: "Receive up to $300 back as statement credits for bookings through Capital One Travel.",
-          partner_involved: "Capital One Travel",
-          offer_type: "Travel Credit",
-          valid_until: null,
-          source_url: null,
-        },
-        {
-          promotion_title: "10,000 Bonus Miles Every Anniversary",
-          description: "Receive 10,000 bonus miles every account anniversary, equal to $100 in travel.",
-          partner_involved: null,
-          offer_type: "Anniversary Bonus",
-          valid_until: null,
-          source_url: null,
-        },
-      ],
-    },
-  },
-  // Empty promotions example
-  "Freedom Unlimited": {
-    success: true,
-    data: {
-      card_context: "Chase Freedom Unlimited",
-      promotions: [],
-    },
-  },
-}
+// const mockPromotions: Record<string, PromotionResponse> = { ... }; // This line is fully removed
 
 interface PromotionsViewProps {
   cards: CreditCardType[]
@@ -142,26 +38,52 @@ export function PromotionsView({ cards }: PromotionsViewProps) {
   const [selectedCard, setSelectedCard] = useState<CreditCardType | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   const handleSelectCard = async (card: CreditCardType) => {
     setSelectedCard(card)
     setIsLoading(true)
+    setPromotions([])
+    setError(null)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const requestBody = {
+        card: card.name,
+        bankName: card.issuer,
+        country: card.country,
+      };
 
-    // Get mock promotions for the selected card
-    const response = mockPromotions[card.name] || {
-      success: true,
-      data: {
-        card_context: card.name,
-        promotions: [],
-      },
+      const response = await fetch("/api/promotions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `API request failed with status ${response.status}`);
+      }
+
+      const result: PromotionResponse = await response.json();
+      console.log(result)
+      if (result.success && result.data) {
+        setPromotions(result.data.promotions);
+      } else {
+        // Handle cases where success is false or data is missing, though API should ideally align with this
+        setPromotions([]);
+        console.warn("API response indicated failure or missing data:", result);
+        setError("Could not fetch promotions for this card.");
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch promotions:", err);
+      setPromotions([]);
+      setError(err.message || "An unexpected error occurred while fetching promotions.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setPromotions(response.data.promotions)
-    setIsLoading(false)
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -275,6 +197,19 @@ export function PromotionsView({ cards }: PromotionsViewProps) {
           <p className="text-muted-foreground">
             Choose a card from above to see available promotions and special offers.
           </p>
+        </Card>
+      )}
+      {error && (
+        <Card className="mt-4 border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{error}</p>
+            <Button variant="outline" size="sm" onClick={() => selectedCard && handleSelectCard(selectedCard)} className="mt-2">
+                Try Again
+            </Button>
+          </CardContent>
         </Card>
       )}
     </div>
