@@ -6,11 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ShoppingBag, Utensils, Plane, Home, Car, ChevronLeft, ChevronRight, Info } from "lucide-react"
+import { ShoppingBag, Utensils, Plane, Home, Car, ChevronLeft, ChevronRight, Info, Loader2 } from "lucide-react"
 import { EcommerceRewardsView } from "./ecommerce-rewards-view"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useAuth } from "@clerk/nextjs"
+import { toast } from "sonner"
+import type { CardStatementAnalysisResponse } from "@/types/cards"
 
 interface RewardCategory {
   name: string
@@ -332,22 +335,149 @@ const monthlyRewardsData: Record<string, RewardCategory[]> = {
 // Get available months
 const availableMonths = Object.keys(monthlyRewardsData)
 
+// Helper function to get an icon for a category
+function getCategoryIcon(category: string): React.ReactNode {
+  const categoryLower = category.toLowerCase()
+  if (categoryLower.includes('dining')) return <Utensils className="h-4 w-4" />
+  if (categoryLower.includes('travel')) return <Plane className="h-4 w-4" />
+  if (categoryLower.includes('shopping')) return <ShoppingBag className="h-4 w-4" />
+  if (categoryLower.includes('groceries')) return <Home className="h-4 w-4" />
+  if (categoryLower.includes('fuel') || categoryLower.includes('gas')) return <Car className="h-4 w-4" />
+  
+  // Default icon
+  return <ShoppingBag className="h-4 w-4" />
+}
+
+// Function to get a color for a category
+function getCategoryColor(category: string, index: number): string {
+  const colors = [
+    "#2563eb", // blue
+    "#8b5cf6", // violet
+    "#ec4899", // pink
+    "#f97316", // orange
+    "#14b8a6", // teal
+    "#84cc16", // lime
+    "#4ade80", // green
+  ]
+
+  // Generate color based on category name for consistency
+  const categoryLower = category.toLowerCase()
+  const categoryColors: Record<string, string> = {
+    dining: "#f97316",
+    travel: "#2563eb",
+    shopping: "#ec4899",
+    groceries: "#84cc16",
+    utilities: "#8b5cf6",
+    fuel: "#14b8a6",
+    entertainment: "#8b5cf6",
+    other: "#6b7280",
+  }
+
+  return categoryColors[categoryLower] || colors[index % colors.length]
+}
+
 export function RewardsView() {
-  const [selectedMonth, setSelectedMonth] = useState(availableMonths[2]) // Default to March 2025
+  const { userId, isSignedIn } = useAuth()
+  const [selectedMonth, setSelectedMonth] = useState<string>("")
+  const [availableMonths, setAvailableMonths] = useState<string[]>([])
   const [rewardCategories, setRewardCategories] = useState<RewardCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [analysesByMonth, setAnalysesByMonth] = useState<Record<string, CardStatementAnalysisResponse[]>>({})
 
+  // Fetch statement analyses when component mounts
   useEffect(() => {
-    // Simulate loading data
-    setIsLoading(true)
+    if (!isSignedIn || !userId) return
 
-    const timer = setTimeout(() => {
-      setRewardCategories(monthlyRewardsData[selectedMonth])
-      setIsLoading(false)
-    }, 1000)
+    async function fetchStatementAnalyses() {
+      setIsLoading(true)
+      try {
+        const response = await fetch(`/api/statement-analysis?userId=${userId}`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch statement analyses')
+        }
+        
+        const data = await response.json()
+        
+        if (data.success && data.analyses && data.analyses.length > 0) {
+          // Group analyses by statement period
+          const groupedAnalyses: Record<string, CardStatementAnalysisResponse[]> = {}
+          
+          data.analyses.forEach((analysis: CardStatementAnalysisResponse) => {
+            if (!groupedAnalyses[analysis.statementPeriod]) {
+              groupedAnalyses[analysis.statementPeriod] = []
+            }
+            groupedAnalyses[analysis.statementPeriod].push(analysis)
+          })
+          
+          setAnalysesByMonth(groupedAnalyses)
+          
+          // Set available months from the analyses
+          const periods = Object.keys(groupedAnalyses)
+          setAvailableMonths(periods)
+          
+          // Set the most recent month as selected
+          if (periods.length > 0) {
+            setSelectedMonth(periods[0])
+          }
+        } else {
+          setAvailableMonths([])
+          setRewardCategories([])
+        }
+      } catch (error) {
+        console.error('Error fetching statement analyses:', error)
+        toast.error('Failed to load rewards data')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchStatementAnalyses()
+  }, [userId, isSignedIn])
 
-    return () => clearTimeout(timer)
-  }, [selectedMonth])
+  // Update reward categories when selected month changes
+  useEffect(() => {
+    if (!selectedMonth || !analysesByMonth[selectedMonth]) {
+      setRewardCategories([])
+      return
+    }
+    
+    const analyses = analysesByMonth[selectedMonth]
+    
+    // Convert analyses to reward categories format
+    const categoryMap = new Map<string, RewardCategory>()
+    
+    analyses.forEach(analysis => {
+      analysis.categories.forEach(category => {
+        const categoryName = category.category
+        const categoryKey = categoryName.toLowerCase()
+        
+        if (!categoryMap.has(categoryKey)) {
+          categoryMap.set(categoryKey, {
+            name: categoryName,
+            icon: getCategoryIcon(categoryName),
+            earned: 0,
+            potential: 0,
+            color: getCategoryColor(categoryName, 0),
+            cards: []
+          })
+        }
+        
+        const existing = categoryMap.get(categoryKey)!
+        existing.earned += category.points_earned
+        existing.potential += category.potential_points
+        
+        // Add card info
+        existing.cards.push({
+          name: analysis.cardName,
+          issuer: analysis.issuingBank,
+          points: category.points_earned
+        })
+      })
+    })
+    
+    setRewardCategories(Array.from(categoryMap.values()))
+  }, [selectedMonth, analysesByMonth])
 
   const handlePreviousMonth = () => {
     const currentIndex = availableMonths.indexOf(selectedMonth)
@@ -380,14 +510,14 @@ export function RewardsView() {
               variant="outline"
               size="icon"
               onClick={handlePreviousMonth}
-              disabled={selectedMonth === availableMonths[0] || isLoading}
+              disabled={!selectedMonth || selectedMonth === availableMonths[0] || isLoading}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={isLoading}>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={isLoading || availableMonths.length === 0}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select month" />
+                <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
                 {availableMonths.map((month) => (
@@ -402,7 +532,7 @@ export function RewardsView() {
               variant="outline"
               size="icon"
               onClick={handleNextMonth}
-              disabled={selectedMonth === availableMonths[availableMonths.length - 1] || isLoading}
+              disabled={!selectedMonth || selectedMonth === availableMonths[availableMonths.length - 1] || isLoading}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -463,6 +593,19 @@ export function RewardsView() {
               </CardContent>
             </Card>
           </>
+        ) : availableMonths.length === 0 ? (
+          <Card className="p-8 text-center">
+            <div className="flex flex-col items-center justify-center">
+              <Info className="h-10 w-10 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Reward Data Available</h3>
+              <p className="text-muted-foreground max-w-md mb-4">
+                Upload your statement PDFs to see your rewards performance.
+              </p>
+              <Button variant="outline" asChild>
+                <a href="/statement-upload">Upload a Statement</a>
+              </Button>
+            </div>
+          </Card>
         ) : (
           <>
             <div className="grid gap-4 md:grid-cols-2">
@@ -507,11 +650,15 @@ export function RewardsView() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <Progress
-                        value={(category.earned / category.potential) * 100}
-                        className="h-2"
-                        indicatorClassName={`bg-[${category.color}]`}
-                      />
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full"
+                          style={{
+                            width: `${(category.earned / category.potential) * 100}%`,
+                            background: category.color
+                          }}
+                        />
+                      </div>
                       <div className="flex justify-between text-sm">
                         <span>{category.earned.toLocaleString()} pts earned</span>
                         <span className="text-muted-foreground">

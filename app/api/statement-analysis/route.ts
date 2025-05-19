@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processStatementPDF, storeStatementAnalysis } from '@/lib/services/statementAnalysisService';
 import { CardStatementAnalysisRequest, CardStatementAnalysisRequestSchema } from '@/types/cards';
+import { supabase } from '@/lib/supabase';
 
 // Use the newer route segment config format
 export const dynamic = 'force-dynamic';
@@ -59,9 +60,6 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Process the statement
-    // Note: In a production environment, we would extract and analyze the PDF content directly
-    // Currently using a simplified approach with Perplexity
     const analysis = await processStatementPDF(
       buffer,
       userId,
@@ -110,12 +108,39 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // In a real implementation, you would query your database here
-    // For now, we'll return a mock empty array
+    // Query the database for statement analyses
+    const { data: analyses, error } = await supabase
+      .from('statement_analyses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching statement analyses:', error);
+      return NextResponse.json(
+        { message: 'Failed to fetch statement analyses' },
+        { status: 500 }
+      );
+    }
+    
+    // Process the analyses to convert them to the expected format
+    const formattedAnalyses = analyses.map(analysis => ({
+      userId: analysis.user_id,
+      cardName: analysis.card_name,
+      issuingBank: analysis.issuing_bank,
+      country: analysis.country,
+      statementPeriod: analysis.statement_period,
+      totalPointsEarned: analysis.total_points_earned,
+      totalPotentialPoints: analysis.total_potential_points,
+      pointsMissedPercentage: analysis.points_missed_percentage,
+      categories: JSON.parse(analysis.categories || '[]'),
+      createdAt: analysis.created_at
+    }));
     
     return NextResponse.json({
+      success: true,
       userId,
-      analyses: []
+      analyses: formattedAnalyses
     });
     
   } catch (error: any) {

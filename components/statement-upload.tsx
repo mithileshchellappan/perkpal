@@ -9,16 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowUpCircle, FileText, BarChart, Loader2 } from "lucide-react"
+import { ArrowUpCircle, FileText, BarChart, Loader2, Calendar } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import type { CreditCardType } from "@/lib/types"
+import { toast } from "sonner"
+import { useAuth } from "@clerk/nextjs"
+import type { CardStatementAnalysisResponse, CardStatementCategory } from "@/types/cards"
 
 interface StatementUploadProps {
   cards: CreditCardType[]
 }
 
 export function StatementUpload({ cards }: StatementUploadProps) {
+  const { userId } = useAuth()
   const [selectedCard, setSelectedCard] = useState<string | undefined>()
   const [fileUploaded, setFileUploaded] = useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -26,27 +30,32 @@ export function StatementUpload({ cards }: StatementUploadProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisComplete, setAnalysisComplete] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [analysisResults, setAnalysisResults] = useState<CardStatementAnalysisResponse | null>(null)
+  const [statementMonth, setStatementMonth] = useState<string>(new Date().getMonth().toString())
+  const [statementYear, setStatementYear] = useState<string>(new Date().getFullYear().toString())
 
-  // Mock analysis results
-  const analysisResults = {
-    totalSpend: 56789,
-    totalPoints: 2450,
-    categories: [
-      { name: "Dining", spend: 12450, points: 623, pointsPerRupee: 0.05 },
-      { name: "Travel", spend: 18950, points: 948, pointsPerRupee: 0.05 },
-      { name: "Shopping", spend: 9800, points: 490, pointsPerRupee: 0.05 },
-      { name: "Grocery", spend: 7600, points: 228, pointsPerRupee: 0.03 },
-      { name: "Utilities", spend: 4350, points: 87, pointsPerRupee: 0.02 },
-      { name: "Other", spend: 3639, points: 74, pointsPerRupee: 0.02 },
-    ],
-    month: "April 2025",
-  }
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ]
+
+  const years = Array.from({ length: 6 }, (_, i) => {
+    const year = new Date().getFullYear() - 2 + i
+    return { value: year.toString(), label: year.toString() }
+  })
 
   const handleCardSelect = (cardId: string) => {
     setSelectedCard(cardId)
-    if (fileUploaded) {
-      handleUpload()
-    }
   }
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -76,9 +85,8 @@ export function StatementUpload({ cards }: StatementUploadProps) {
       const file = files[0]
       if (file.type === "application/pdf") {
         setFileUploaded(file)
-        if (selectedCard) {
-          handleUpload()
-        }
+      } else {
+        toast.error("Only PDF files are supported")
       }
     }
   }
@@ -89,37 +97,79 @@ export function StatementUpload({ cards }: StatementUploadProps) {
       const file = files[0]
       if (file.type === "application/pdf") {
         setFileUploaded(file)
-        if (selectedCard) {
-          handleUpload()
-        }
+      } else {
+        toast.error("Only PDF files are supported")
       }
     }
   }
 
-  const handleUpload = () => {
-    if (!selectedCard || !fileUploaded) return
+  const handleUpload = async () => {
+    if (!selectedCard || !fileUploaded || !userId) {
+      toast.error("Please select a card and upload a statement file")
+      return
+    }
+
+    const selectedCardData = cards.find((card) => card.id === selectedCard)
+    if (!selectedCardData) {
+      toast.error("Selected card not found")
+      return
+    }
 
     setIsUploading(true)
     setUploadProgress(0)
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setIsUploading(false)
-          setIsAnalyzing(true)
+    // Create a FormData object to send the file
+    const formData = new FormData()
+    formData.append("statement_file", fileUploaded)
+    formData.append("userId", userId)
+    formData.append("cardName", selectedCardData.name)
+    formData.append("issuingBank", selectedCardData.issuer)
+    formData.append("country", selectedCardData.country || "India")
+    formData.append("statementMonth", statementMonth)
+    formData.append("statementYear", statementYear)
 
-          // Simulate analysis time
-          setTimeout(() => {
-            setIsAnalyzing(false)
-            setAnalysisComplete(true)
-          }, 3500)
-          return 100
-        }
-        return prev + 5
+    try {
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 5
+        })
+      }, 150)
+
+      // Make the actual API call
+      const response = await fetch("/api/statement-analysis", {
+        method: "POST",
+        body: formData,
       })
-    }, 150)
+
+      clearInterval(progressInterval)
+      setUploadProgress(100)
+      setIsUploading(false)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to analyze statement")
+      }
+
+      // Set analyzing state
+      setIsAnalyzing(true)
+
+      // Get the analysis results
+      const analysisData = await response.json()
+      setAnalysisResults(analysisData)
+
+      // Complete the process
+      setIsAnalyzing(false)
+      setAnalysisComplete(true)
+    } catch (error) {
+      console.error("Error uploading statement:", error)
+      setIsUploading(false)
+      toast.error(error instanceof Error ? error.message : "Failed to upload statement")
+    }
   }
 
   const resetUpload = () => {
@@ -128,6 +178,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
     setIsUploading(false)
     setIsAnalyzing(false)
     setAnalysisComplete(false)
+    setAnalysisResults(null)
   }
 
   // Show loading skeleton when analyzing
@@ -175,14 +226,14 @@ export function StatementUpload({ cards }: StatementUploadProps) {
   }
 
   // Show analysis results when complete
-  if (analysisComplete) {
+  if (analysisComplete && analysisResults) {
     const selectedCardData = cards.find((card) => card.id === selectedCard)
 
     // Calculate category percentages for the chart
-    const totalSpend = analysisResults.categories.reduce((sum, cat) => sum + cat.spend, 0)
+    const totalSpend = analysisResults.categories.reduce((sum, cat) => sum + cat.total_spend, 0)
     let startPercentage = 0
     const categoryChartData = analysisResults.categories.map((category) => {
-      const percentage = (category.spend / totalSpend) * 100
+      const percentage = (category.total_spend / totalSpend) * 100
       const start = startPercentage
       startPercentage += percentage
       return {
@@ -201,7 +252,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
               <div>
                 <CardTitle>Statement Analysis</CardTitle>
                 <CardDescription>
-                  {selectedCardData?.name} ({selectedCardData?.issuer}) - {analysisResults.month}
+                  {selectedCardData?.name} ({selectedCardData?.issuer}) - {analysisResults.statementPeriod}
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={resetUpload}>
@@ -224,8 +275,14 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                       <CardTitle className="text-base">Total Spend</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-2xl font-bold">₹{analysisResults.totalSpend.toLocaleString()}</p>
-                      <p className="text-sm text-muted-foreground">For {analysisResults.month}</p>
+                      <p className="text-2xl font-bold">
+                        {totalSpend.toLocaleString(undefined, {
+                          style: "currency",
+                          currency: analysisResults.categories[0]?.currency || "INR",
+                          maximumFractionDigits: 0,
+                        })}
+                      </p>
+                      <p className="text-sm text-muted-foreground">For {analysisResults.statementPeriod}</p>
                     </CardContent>
                   </Card>
 
@@ -234,7 +291,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                       <CardTitle className="text-base">Points Earned</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-2xl font-bold">{analysisResults.totalPoints.toLocaleString()}</p>
+                      <p className="text-2xl font-bold">{analysisResults.totalPointsEarned.toLocaleString()}</p>
                       <p className="text-sm text-muted-foreground">Reward points</p>
                     </CardContent>
                   </Card>
@@ -245,7 +302,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                     </CardHeader>
                     <CardContent>
                       <p className="text-2xl font-bold">
-                        {(analysisResults.totalPoints / analysisResults.totalSpend).toFixed(3)}
+                        {(analysisResults.totalPointsEarned / totalSpend).toFixed(3)}
                       </p>
                       <p className="text-sm text-muted-foreground">Points per rupee</p>
                     </CardContent>
@@ -264,7 +321,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                         className="h-full inline-block"
                         style={{
                           width: `${category.percentage}%`,
-                          background: getCategoryColor(category.name, index),
+                          background: getCategoryColor(category.category, index),
                         }}
                       />
                     ))}
@@ -276,14 +333,20 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                         <div className="flex items-center gap-2">
                           <div
                             className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: getCategoryColor(category.name, index) }}
+                            style={{ backgroundColor: getCategoryColor(category.category, index) }}
                           />
-                          <span>{category.name}</span>
+                          <span className="capitalize">{category.category}</span>
                         </div>
                         <div className="flex gap-6">
-                          <span>₹{category.spend.toLocaleString()}</span>
+                          <span>
+                            {category.total_spend.toLocaleString(undefined, {
+                              style: "currency",
+                              currency: category.currency,
+                              maximumFractionDigits: 0,
+                            })}
+                          </span>
                           <span className="text-muted-foreground w-16 text-right">
-                            {((category.spend / totalSpend) * 100).toFixed(1)}%
+                            {((category.total_spend / totalSpend) * 100).toFixed(1)}%
                           </span>
                         </div>
                       </div>
@@ -301,12 +364,12 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                           <div className="flex items-center gap-2">
                             <div
                               className="h-3 w-3 rounded-full"
-                              style={{ backgroundColor: getCategoryColor(category.name, index) }}
+                              style={{ backgroundColor: getCategoryColor(category.category, index) }}
                             />
-                            <CardTitle className="text-base">{category.name}</CardTitle>
+                            <CardTitle className="text-base capitalize">{category.category}</CardTitle>
                           </div>
                           <span className="text-sm font-medium">
-                            {((category.spend / totalSpend) * 100).toFixed(1)}% of total
+                            {((category.total_spend / totalSpend) * 100).toFixed(1)}% of total
                           </span>
                         </div>
                       </CardHeader>
@@ -314,17 +377,31 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <p className="text-sm text-muted-foreground">Total Spend</p>
-                            <p className="text-lg font-semibold">₹{category.spend.toLocaleString()}</p>
+                            <p className="text-lg font-semibold">
+                              {category.total_spend.toLocaleString(undefined, {
+                                style: "currency",
+                                currency: category.currency,
+                                maximumFractionDigits: 0,
+                              })}
+                            </p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Points Earned</p>
-                            <p className="text-lg font-semibold">{category.points.toLocaleString()}</p>
+                            <p className="text-lg font-semibold">{category.points_earned.toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Points per Rupee</p>
-                            <p className="text-lg font-semibold">{category.pointsPerRupee.toFixed(2)}</p>
+                            <p className="text-lg font-semibold">
+                              {(category.points_earned / category.total_spend).toFixed(2)}
+                            </p>
                           </div>
                         </div>
+                        {category.optimization_tips && (
+                          <div className="mt-3 p-3 bg-muted/30 rounded-lg text-sm">
+                            <p className="font-medium mb-1">Optimization Tips:</p>
+                            <p>{category.optimization_tips}</p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -335,23 +412,26 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                 <div className="rounded-lg border p-4 mb-6">
                   <h3 className="font-medium mb-4">Points Earning Efficiency</h3>
 
-                  {analysisResults.categories.map((category, index) => (
-                    <div key={index} className="mb-3 last:mb-0">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm">{category.name}</span>
-                        <span className="text-sm">{category.pointsPerRupee.toFixed(2)} pts/₹</span>
+                  {analysisResults.categories.map((category, index) => {
+                    const pointsPerRupee = category.points_earned / category.total_spend
+                    return (
+                      <div key={index} className="mb-3 last:mb-0">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-sm capitalize">{category.category}</span>
+                          <span className="text-sm">{pointsPerRupee.toFixed(2)} pts/₹</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${(pointsPerRupee / 0.05) * 100}%`,
+                              background: getCategoryColor(category.category, index),
+                            }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full"
-                          style={{
-                            width: `${(category.pointsPerRupee / 0.05) * 100}%`,
-                            background: getCategoryColor(category.name, index),
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 <Card>
@@ -360,21 +440,24 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                     <CardDescription>How to maximize your reward points</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <h4 className="font-medium mb-2">Use another card for Utilities</h4>
-                      <p className="text-sm">
-                        Your current earnings on Utilities (0.02 pts/₹) are below average. Consider using the HDFC
-                        Regalia card which offers 0.04 pts/₹ on utility payments.
-                      </p>
-                    </div>
+                    {analysisResults.categories
+                      .filter((cat) => cat.optimization_tips)
+                      .map((category, idx) => (
+                        <div key={idx} className="p-4 bg-muted/30 rounded-lg">
+                          <h4 className="font-medium mb-2">Optimize {category.category} spending</h4>
+                          <p className="text-sm">{category.optimization_tips}</p>
+                        </div>
+                      ))}
 
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <h4 className="font-medium mb-2">Maximize points on Grocery spending</h4>
-                      <p className="text-sm">
-                        You could earn up to 380 additional points by using a specialized grocery card like Amazon Pay
-                        ICICI card for your monthly grocery spending of ₹7,600.
-                      </p>
-                    </div>
+                    {analysisResults.categories.filter((cat) => cat.optimization_tips).length === 0 && (
+                      <div className="p-4 bg-muted/30 rounded-lg">
+                        <h4 className="font-medium mb-2">Overall optimization</h4>
+                        <p className="text-sm">
+                          You're missing approximately {analysisResults.pointsMissedPercentage.toFixed(0)}% of your
+                          potential points. Consider using specialized cards for different spending categories.
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -409,6 +492,39 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="statement-month">Statement Month</Label>
+                <Select value={statementMonth} onValueChange={setStatementMonth}>
+                  <SelectTrigger id="statement-month">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month.value} value={month.value}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="statement-year">Statement Year</Label>
+                <Select value={statementYear} onValueChange={setStatementYear}>
+                  <SelectTrigger id="statement-year">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year.value} value={year.value}>
+                        {year.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {isUploading ? (
@@ -460,6 +576,18 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                 {!selectedCard && <p className="mt-4 text-sm text-amber-500">Please select a card first</p>}
               </div>
             )}
+
+            {fileUploaded && selectedCard && !isUploading && (
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={resetUpload}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleUpload}>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Analyze Statement
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -509,13 +637,15 @@ function getCategoryColor(category: string, index: number): string {
 
   // Generate color based on category name for consistency
   const categoryColors: Record<string, string> = {
-    Dining: "#f97316",
-    Travel: "#2563eb",
-    Shopping: "#ec4899",
-    Grocery: "#84cc16",
-    Utilities: "#8b5cf6",
-    Other: "#6b7280",
+    dining: "#f97316",
+    travel: "#2563eb",
+    shopping: "#ec4899",
+    groceries: "#84cc16",
+    utilities: "#8b5cf6",
+    fuel: "#14b8a6",
+    entertainment: "#8b5cf6",
+    other: "#6b7280",
   }
 
-  return categoryColors[category] || colors[index % colors.length]
+  return categoryColors[category.toLowerCase()] || colors[index % colors.length]
 }

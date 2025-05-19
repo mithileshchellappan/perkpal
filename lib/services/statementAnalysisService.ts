@@ -3,6 +3,7 @@ import { perplexity } from '@ai-sdk/perplexity';
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { CardStatementAnalysisResponseSchema } from '@/types/cards';
+import { storeStatementAnalysis as dbStoreStatementAnalysis } from '@/lib/db';
 
 /**
  * Analyze a credit card statement using Perplexity AI
@@ -24,8 +25,6 @@ export async function analyzeCardStatement(
   statementMonth: string,
   statementYear: string
 ): Promise<CardStatementAnalysisResponse> {
-  // For now, we're using a simplified approach while PDF support in AI SDK evolves
-  // We're assuming the PDF content can be analyzed with the text-based approach
   
   const systemPrompt = `You are an AI financial analyst specializing in credit card rewards optimization. 
   Your task is to analyze credit card statements and extract transaction information to calculate reward 
@@ -150,14 +149,8 @@ export async function storeStatementAnalysis(
   analysis: CardStatementAnalysisResponse
 ): Promise<CardStatementAnalysisResponse> {
   try {
-    // In a real implementation, you would store this in your database
-    // For demonstration purposes, we'll just return the analysis
-    
-    // Example database storage code:
-    // const db = getDatabase();
-    // await db.collection('statementanalysis').insertOne(analysis);
-    
-    return analysis;
+    // Use the database function to store the analysis
+    return await dbStoreStatementAnalysis(analysis);
   } catch (error) {
     console.error('Error storing statement analysis:', error);
     throw new Error('Failed to store statement analysis');

@@ -1,5 +1,5 @@
 import { supabase, toCamelCase, toSnakeCase } from './supabase';
-import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse as InternalComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse, PromotionSpotlightResponse } from '@/types/cards';
+import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse as InternalComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse, PromotionSpotlightResponse, CardStatementAnalysisResponse } from '@/types/cards';
 import { CardPointsEntry } from '@/types/points';
 
 // Re-export for use in other modules if needed, or use the internal one directly if not meant to be widely public
@@ -815,5 +815,79 @@ export async function setCachedCardComparison(
     }
   } catch (e) {
     console.error('Error caching card comparison:', e);
+  }
+}
+
+// --- Card Statement Analysis Functions ---
+
+export async function storeStatementAnalysis(
+  analysis: CardStatementAnalysisResponse
+): Promise<CardStatementAnalysisResponse> {
+  try {
+    const db = assertSupabaseClient();
+    
+    // First, store the statement analysis data
+    const { data: analysisData, error: analysisError } = await db
+      .from('statement_analyses')
+      .upsert(
+        {
+          user_id: analysis.userId,
+          card_name: analysis.cardName,
+          issuing_bank: analysis.issuingBank,
+          country: analysis.country,
+          statement_period: analysis.statementPeriod,
+          total_points_earned: analysis.totalPointsEarned,
+          total_potential_points: analysis.totalPotentialPoints,
+          points_missed_percentage: analysis.pointsMissedPercentage,
+          categories: JSON.stringify(analysis.categories),
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,card_name,issuing_bank,statement_period' }
+      )
+      .select()
+      .single();
+    
+    if (analysisError) {
+      console.error('Error storing statement analysis:', analysisError);
+      throw new Error('Failed to store statement analysis');
+    }
+    
+    // Get the card ID for this user's card
+    const { data: cardData } = await db
+      .from('user_cards')
+      .select('id')
+      .eq('user_id', analysis.userId)
+      .eq('card_name', analysis.cardName)
+      .eq('bank', analysis.issuingBank)
+      .single();
+    
+    if (!cardData) {
+      console.error('Could not find the card to update points');
+      return analysis;
+    }
+    
+    // Extract the month and year from the statement period (e.g., "May 2023")
+    const [monthName, yearStr] = analysis.statementPeriod.split(' ');
+    const year = parseInt(yearStr);
+    const month = new Date(Date.parse(`${monthName} 1, ${yearStr}`)).getMonth() + 1; // Convert to 1-12
+    
+    // Update the card_points_history with the new points balance
+    await addCardPointsEntry({
+      userId: analysis.userId,
+      cardId: cardData.id,
+      year,
+      month,
+      pointsBalance: analysis.totalPointsEarned
+    });
+    
+    // Update the card's current points balance in user_cards table
+    await updateUserCard(analysis.userId, cardData.id, {
+      pointsBalance: analysis.totalPointsEarned
+    });
+    
+    return analysis;
+  } catch (error) {
+    console.error('Error storing statement analysis:', error);
+    throw new Error(`Failed to store statement analysis: ${error instanceof Error ? error.message : String(error)}`);
   }
 } 
