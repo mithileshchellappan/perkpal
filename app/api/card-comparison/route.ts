@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCardComparison } from '@/lib/services/perplexityService';
 import { CardIdentifierSchema } from '@/types/cards';
 import { z } from 'zod';
+import { getCachedCardComparison, setCachedCardComparison } from '@/lib/db';
 
 // Zod schema for the request body
 const ComparisonRequestSchema = z.object({
@@ -24,8 +25,26 @@ export async function POST(request: Request) {
 
     const { cardsToCompare, country } = validationResult.data;
 
+    // Try to get from cache first
+    let comparisonData = await getCachedCardComparison(cardsToCompare, country);
+
+    if (comparisonData) {
+      console.log(`Cache hit for card comparison: ${country}, ${cardsToCompare.map(c => c.cardName).join(', ')}`);
+      return NextResponse.json({
+        success: true,
+        data: comparisonData,
+        source: 'cache',
+      });
+    }
+
+    console.log(`Cache miss for card comparison: ${country}, ${cardsToCompare.map(c => c.cardName).join(', ')}. Fetching from API.`);
     // Get the card comparison from the service
-    const comparisonData = await getCardComparison(cardsToCompare, country);
+    comparisonData = await getCardComparison(cardsToCompare, country);
+
+    // Store in cache for future requests
+    if (comparisonData) {
+      await setCachedCardComparison(cardsToCompare, country, comparisonData);
+    }
 
     return NextResponse.json({
       success: true,

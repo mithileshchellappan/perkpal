@@ -732,4 +732,88 @@ async function checkCardExists(userId: string, cardId: string): Promise<boolean>
     .single();
   
   return !!data;
+}
+
+// --- Card Comparison Cache Functions ---
+
+export async function getCachedCardComparison(
+  cardsToCompare: Array<{ cardName: string; issuingBank: string }>,
+  country: string
+): Promise<any | null> {
+  try {
+    const db = assertSupabaseClient();
+    
+    // Sort the cards to ensure consistent caching regardless of order
+    const sortedCards = [...cardsToCompare].sort((a, b) => {
+      if (a.issuingBank !== b.issuingBank) {
+        return a.issuingBank.localeCompare(b.issuingBank);
+      }
+      return a.cardName.localeCompare(b.cardName);
+    });
+    
+    const cardsJson = JSON.stringify(sortedCards);
+    
+    const { data, error } = await db
+      .from('card_comparisons')
+      .select('comparison_data, expires_at')
+      .eq('country', country)
+      .filter('cards_to_compare', 'eq', cardsJson)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+    
+    // Check if the data is expired
+    if (data.expires_at && new Date(data.expires_at as string) < new Date()) {
+      console.log(`Cached card comparison data has expired`);
+      return null;
+    }
+
+    return data.comparison_data;
+  } catch (e) {
+    console.error('Error retrieving cached card comparison:', e);
+    return null;
+  }
+}
+
+export async function setCachedCardComparison(
+  cardsToCompare: Array<{ cardName: string; issuingBank: string }>,
+  country: string,
+  comparisonData: any
+): Promise<void> {
+  try {
+    const db = assertSupabaseClient();
+    
+    // Sort the cards to ensure consistent caching regardless of order
+    const sortedCards = [...cardsToCompare].sort((a, b) => {
+      if (a.issuingBank !== b.issuingBank) {
+        return a.issuingBank.localeCompare(b.issuingBank);
+      }
+      return a.cardName.localeCompare(b.cardName);
+    });
+    
+    // Calculate expiration date (1 week from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 1 week TTL
+    
+    const { error } = await db
+      .from('card_comparisons')
+      .upsert(
+        {
+          cards_to_compare: sortedCards,
+          country: country,
+          comparison_data: comparisonData,
+          timestamp: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+        },
+        { onConflict: 'cards_to_compare,country' }
+      );
+
+    if (error) {
+      console.error('Error setting cached card comparison:', error);
+    }
+  } catch (e) {
+    console.error('Error caching card comparison:', e);
+  }
 } 
