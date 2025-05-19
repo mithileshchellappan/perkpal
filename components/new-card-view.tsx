@@ -1,82 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search } from "lucide-react"
+import { Search, Check, Star, ArrowRight, DollarSign, MousePointerClick, ChevronRight, Loader2, Plus, X } from "lucide-react"
 import { generateColorFromString } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { CardNetworkLogo } from "@/components/card-network-logo"
-
-// Sample card recommendations
-const cardRecommendations = [
-  {
-    id: "1",
-    name: "Sapphire Reserve",
-    issuer: "Chase",
-    annualFee: 550,
-    rewardsRate: 3,
-    signupBonus: "60,000 points after spending $4,000 in 3 months",
-    network: "visa",
-    benefits: [
-      "3x points on travel and dining",
-      "$300 annual travel credit",
-      "50% more value when redeeming for travel",
-      "Priority Pass lounge access",
-    ],
-  },
-  {
-    id: "2",
-    name: "Platinum Card",
-    issuer: "American Express",
-    annualFee: 695,
-    rewardsRate: 5,
-    signupBonus: "100,000 points after spending $6,000 in 6 months",
-    network: "amex",
-    benefits: [
-      "5x points on flights and hotels",
-      "$200 airline fee credit",
-      "$200 hotel credit",
-      "Global lounge access",
-      "Uber credits",
-    ],
-  },
-  {
-    id: "3",
-    name: "Venture X",
-    issuer: "Capital One",
-    annualFee: 395,
-    rewardsRate: 2,
-    signupBonus: "75,000 miles after spending $4,000 in 3 months",
-    network: "visa",
-    benefits: [
-      "10x miles on hotels and rental cars",
-      "5x miles on flights",
-      "2x miles on everything else",
-      "$300 annual travel credit",
-      "Priority Pass and Capital One lounge access",
-    ],
-  },
-  {
-    id: "4",
-    name: "Freedom Flex",
-    issuer: "Chase",
-    annualFee: 0,
-    rewardsRate: 5,
-    signupBonus: "$200 cash back after spending $500 in 3 months",
-    network: "mastercard",
-    benefits: [
-      "5% cash back on rotating quarterly categories",
-      "3% cash back on dining and drugstores",
-      "1% cash back on everything else",
-      "0% intro APR for 15 months",
-    ],
-  },
-]
+import { useUserCards } from "@/hooks/use-user-cards"
+import { toast } from "sonner"
+import type { PersonalizedCardSuggestionResponse } from "@/types/cards"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 function adjustColor(color: string, amount: number) {
   return (
@@ -90,24 +28,78 @@ function adjustColor(color: string, amount: number) {
 }
 
 export function NewCardView() {
-  const [cardType, setCardType] = useState("")
-  const [spendingCategory, setSpendingCategory] = useState("")
+  const { cards, isLoading: isLoadingCards } = useUserCards()
+  const [cardType, setCardType] = useState<string>("")
+  const [spendingCategories, setSpendingCategories] = useState<string[]>([])
   const [additionalPreference, setAdditionalPreference] = useState("")
   const [showRecommendations, setShowRecommendations] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [recommendations, setRecommendations] = useState<PersonalizedCardSuggestionResponse | null>(null)
+  const [country, setCountry] = useState("India") // Default to India
+  const [selectedCategory, setSelectedCategory] = useState<string>("")
 
-  const handleFindCards = () => {
-    if (cardType && spendingCategory) {
-      setIsLoading(true)
-      // Simulate API call
-      setTimeout(() => {
-        setShowRecommendations(true)
-        setIsLoading(false)
-      }, 1500)
+  // Update country based on user's first card
+  useEffect(() => {
+    if (cards && cards.length > 0 && cards[0].country) {
+      setCountry(cards[0].country)
+    }
+  }, [cards])
+
+  const addSpendingCategory = () => {
+    if (selectedCategory && !spendingCategories.includes(selectedCategory)) {
+      setSpendingCategories([...spendingCategories, selectedCategory])
+      setSelectedCategory("")
     }
   }
 
-  const filteredCards = cardRecommendations
+  const removeSpendingCategory = (category: string) => {
+    setSpendingCategories(spendingCategories.filter(cat => cat !== category))
+  }
+
+  const handleFindCards = async () => {
+    if (!cardType) {
+      toast.error("Please select a card type")
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      // Prepare request data
+      const requestData = {
+        current_cards: cards.map(card => ({
+          cardName: card.name,
+          issuingBank: card.issuer
+        })),
+        desired_card_type: cardType,
+        country,
+        primary_spending_categories: spendingCategories.length > 0 ? spendingCategories : null,
+        additional_preferences: additionalPreference.length > 0 ? additionalPreference : null
+      }
+
+      // Call the personalized suggestions API
+      const response = await fetch('/api/personalized-suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      })
+
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to get personalized card suggestions')
+      }
+
+      setRecommendations(result.data)
+      setShowRecommendations(true)
+    } catch (error) {
+      console.error('Error fetching card suggestions:', error)
+      toast.error('Failed to get card suggestions')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="container mx-auto py-6">
@@ -125,11 +117,22 @@ export function NewCardView() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current-cards">Current Cards</Label>
-              <Input id="current-cards" value="Chase Sapphire Preferred, Amex Gold" disabled />
+              {isLoadingCards ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Input 
+                  id="current-cards" 
+                  value={cards.length > 0 
+                    ? cards.map(card => `${card.name} (${card.issuer})`).join(', ') 
+                    : 'No cards added yet'
+                  } 
+                  disabled 
+                />
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
-              <Input id="country" value="United States" disabled />
+              <Input id="country" value={country} disabled />
             </div>
             <div className="space-y-2">
               <Label htmlFor="card-type">Desired Card Type</Label>
@@ -138,43 +141,91 @@ export function NewCardView() {
                   <SelectValue placeholder="Select card type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="travel">Travel Rewards</SelectItem>
-                  <SelectItem value="cashback">Cash Back</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="secured">Secured</SelectItem>
+                  <SelectItem value="Travel Rewards">Travel Rewards</SelectItem>
+                  <SelectItem value="Cashback">Cash Back</SelectItem>
+                  <SelectItem value="Dining">Dining Rewards</SelectItem>
+                  <SelectItem value="Business">Business</SelectItem>
+                  <SelectItem value="Low Annual Fee">Low Annual Fee</SelectItem>
+                  <SelectItem value="No Annual Fee">No Annual Fee</SelectItem>
+                  <SelectItem value="Fuel">Fuel Rewards</SelectItem>
+                  <SelectItem value="Forex">Forex Optimized</SelectItem>
+                  <SelectItem value="Lifestyle">Lifestyle & Entertainment</SelectItem>
+                  <SelectItem value="Student">Student</SelectItem>
+                  <SelectItem value="Hotel">Hotel Co-branded</SelectItem>
+                  <SelectItem value="Airline">Airline Co-branded</SelectItem>
+                  <SelectItem value="Premium">Premium</SelectItem>
+                  <SelectItem value="Ultra-Premium">Ultra-Premium</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="spending-category">Primary Spending Category</Label>
-              <Select value={spendingCategory} onValueChange={setSpendingCategory}>
-                <SelectTrigger id="spending-category">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="travel">Travel</SelectItem>
-                  <SelectItem value="dining">Dining</SelectItem>
-                  <SelectItem value="groceries">Groceries</SelectItem>
-                  <SelectItem value="gas">Gas</SelectItem>
-                  <SelectItem value="entertainment">Entertainment</SelectItem>
-                  <SelectItem value="online-shopping">Online Shopping</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Primary Spending Categories</Label>
+              <div className="flex space-x-2">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Travel">Travel</SelectItem>
+                    <SelectItem value="Dining">Dining</SelectItem>
+                    <SelectItem value="Groceries">Groceries</SelectItem>
+                    <SelectItem value="Gas">Gas/Fuel</SelectItem>
+                    <SelectItem value="Entertainment">Entertainment</SelectItem>
+                    <SelectItem value="Shopping">Shopping</SelectItem>
+                    <SelectItem value="Utilities">Bills & Utilities</SelectItem>
+                    <SelectItem value="Healthcare">Healthcare</SelectItem>
+                    <SelectItem value="Education">Education</SelectItem>
+                    <SelectItem value="Transit">Transit & Commute</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={addSpendingCategory} 
+                  disabled={!selectedCategory || spendingCategories.includes(selectedCategory)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {spendingCategories.map((category) => (
+                  <Badge key={category} variant="secondary" className="flex items-center gap-1">
+                    {category}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 p-0 ml-1"
+                      onClick={() => removeSpendingCategory(category)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </Badge>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="additional-preference">Additional Preference</Label>
+              <Label htmlFor="additional-preference">Additional Preferences</Label>
               <Input
                 id="additional-preference"
-                placeholder="e.g., low annual fee, airport lounges, etc."
+                placeholder="e.g., airport lounges, 0% APR, etc."
                 value={additionalPreference}
                 onChange={(e) => setAdditionalPreference(e.target.value)}
               />
             </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleFindCards} disabled={!cardType || !spendingCategory || isLoading} className="w-full">
-              {isLoading ? "Finding Cards..." : "Find Cards"}
+            <Button onClick={handleFindCards} disabled={!cardType || isLoading} className="w-full">
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Finding Cards...
+                </>
+              ) : (
+                <>
+                  <ChevronRight className="mr-2 h-4 w-4" />
+                  Find Cards
+                </>
+              )}
             </Button>
           </CardFooter>
         </Card>
@@ -200,34 +251,44 @@ export function NewCardView() {
                 <Skeleton className="h-[300px] rounded-xl" />
                 <Skeleton className="h-[300px] rounded-xl" />
                 <Skeleton className="h-[300px] rounded-xl" />
-                <Skeleton className="h-[300px] rounded-xl" />
               </div>
             </div>
           )}
 
-          {showRecommendations && !isLoading && (
-            <div>
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold">Recommended Cards</h2>
-                <p className="text-muted-foreground">
-                  Based on your {cardType} preference and {spendingCategory} spending
-                </p>
-              </div>
+          {showRecommendations && !isLoading && recommendations && (
+            <ScrollArea className="h-[calc(100vh-200px)]">
+              <div className="pr-4">
+                {recommendations.evaluation_of_current_cards && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Portfolio Evaluation</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{recommendations.evaluation_of_current_cards}</p>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                <div className="mb-6">
+                  <h2 className="text-2xl font-semibold">Recommended Cards</h2>
+                  <p className="text-muted-foreground">
+                    Based on your {cardType} preference{spendingCategories.length > 0 ? ` and ${spendingCategories.join(', ')} spending` : ''}
+                  </p>
+                </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
-                {filteredCards.map((card) => {
-                  const baseColor = generateColorFromString(`${card.name}-${card.issuer}`)
-                  const secondaryColor = adjustColor(baseColor, 5)
-                  const accentColor = adjustColor(baseColor, -8)
-
-                  return (
-                    <div key={card.id} className="mb-4">
-                      <Card className="overflow-hidden">
+                <div className="grid gap-6 md:grid-cols-2 mb-6">
+                  {recommendations.suggested_cards.map((card, index) => {
+                    const baseColor = generateColorFromString(`${card.card_name}-${card.issuing_bank}`)
+                    const secondaryColor = adjustColor(baseColor, 20)
+                    const accentColor = adjustColor(baseColor, -30)
+                    
+                    return (
+                      <Card key={index} className="overflow-hidden">
                         <div
-                          className="h-32 relative"
+                          className="h-36 relative"
                           style={{
                             background: `linear-gradient(135deg, ${baseColor} 0%, ${secondaryColor} 100%)`,
-                            boxShadow: `inset 0 0 60px rgba(0, 0, 0, 0.3)`,
+                            boxShadow: `inset 0 0 60px rgba(0, 0, 0, 0.2)`,
                           }}
                         >
                           {/* Add subtle pattern overlay */}
@@ -242,55 +303,51 @@ export function NewCardView() {
                           {/* Add subtle highlight */}
                           <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-white/10 to-transparent" />
 
-                          <div className="absolute top-2 right-2">
-                            <CardNetworkLogo network={card.network || "other"} className="h-8 w-12" />
+                          <div className="absolute top-4 right-4">
+                            <Badge className="font-semibold">{card.primary_card_category}</Badge>
                           </div>
-                          <div className="absolute bottom-2 left-4">
-                            <h3 className="font-bold text-white">{card.name}</h3>
-                            <p className="text-sm text-white/80">{card.issuer}</p>
+                          <div className="absolute bottom-4 left-4">
+                            <h3 className="font-bold text-white text-xl">{card.card_name}</h3>
+                            <p className="text-sm text-white/90">{card.issuing_bank}</p>
                           </div>
                         </div>
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Annual Fee</p>
-                              <p className="font-medium">{card.annualFee ? `$${card.annualFee}` : "No Fee"}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Welcome Bonus</p>
-                              <p className="font-medium">
-                                {card.signupBonus ? `${card.signupBonus.toLocaleString()} pts` : "None"}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">APR</p>
-                              <p className="font-medium">N/A</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Foreign Transaction</p>
-                              <p className="font-medium">None</p>
-                            </div>
-                          </div>
-                          <div className="mt-4">
-                            <p className="text-sm text-muted-foreground">Top Categories</p>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {card.benefits?.slice(0, 3).map((category) => (
-                                <Badge key={category} variant="outline">
-                                  {category}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <Button className="w-full mt-4" variant="outline">
-                            View Details
-                          </Button>
+                        <CardContent className="p-6">
+                          <p className="mb-4">{card.justification}</p>
+                          
+                          <h4 className="font-medium mb-2">Key Benefits:</h4>
+                          <ul className="space-y-2">
+                            {card.key_benefits.map((benefit, idx) => (
+                              <li key={idx} className="flex gap-2">
+                                <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                                <span>{benefit}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </CardContent>
                       </Card>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
+                
+                {recommendations.important_considerations && recommendations.important_considerations.length > 0 && (
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <CardTitle>Important Considerations</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {recommendations.important_considerations.map((consideration, idx) => (
+                          <li key={idx} className="flex gap-2">
+                            <ArrowRight className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <span>{consideration}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
-            </div>
+            </ScrollArea>
           )}
         </div>
       </div>
