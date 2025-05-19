@@ -1,304 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, Info, ExternalLink } from "lucide-react"
-
-// E-commerce rewards data
-const ecommerceRewardsData = {
-  country: "India",
-  recommendations: [
-    {
-      ecomm_partner_name: "Amazon India",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia offers a high base reward rate on all online spends, including Amazon purchases.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Check for limited-time bank offers during sales for extra discounts or cashback.",
-    },
-    {
-      ecomm_partner_name: "Flipkart",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/0/0b/Flipkart_logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's high base reward rate applies to Flipkart purchases.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for special HDFC bank offers during Flipkart Big Billion Days and other sales.",
-    },
-    {
-      ecomm_partner_name: "Myntra",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/6/6a/Myntra_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia provides the best reward rate for fashion purchases on Myntra.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Check for Myntra-specific bank offers during End of Reason Sale.",
-    },
-    {
-      ecomm_partner_name: "Nykaa",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/24/Nykaa_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate is superior for beauty and wellness purchases.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for HDFC bank offers during Nykaa Pink Friday and Hot Pink sales.",
-    },
-    {
-      ecomm_partner_name: "MakeMyTrip",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/MakeMyTrip_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Atlas",
-          issuingBank: "Axis",
-          rewardPoints: "2 EDGE Miles per ₹100 on OTA spends",
-          reasoning: "Atlas offers 2 EDGE Miles per ₹100 on OTA bookings like MakeMyTrip.",
-          source: "https://cardmaven.in/axis-bank-atlas-credit-card/",
-        },
-      ],
-      additional_notes:
-        "Direct airline/hotel bookings earn higher rewards, but for OTAs, Atlas is best among your cards.",
-    },
-    {
-      ecomm_partner_name: "Swiggy",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/1/13/Swiggy_logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate applies to food delivery platforms.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Check for HDFC or Axis bank offers on Swiggy for extra discounts.",
-    },
-    {
-      ecomm_partner_name: "Zomato",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/7/75/Zomato_logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia provides the highest reward rate for Zomato orders.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for limited-time bank offers for additional savings.",
-    },
-    {
-      ecomm_partner_name: "BigBasket",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2a/BigBasket_logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate is best for grocery platforms like BigBasket.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Check for HDFC or Axis bank offers during BigBasket sales.",
-    },
-    {
-      ecomm_partner_name: "JioMart",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/JioMart_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia offers the highest reward rate for JioMart purchases.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for special bank offers during JioMart sales.",
-    },
-    {
-      ecomm_partner_name: "Tata CLiQ",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Tata_Cliq_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate is best for Tata CLiQ purchases.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Check for Tata CLiQ-specific bank offers during sales.",
-    },
-    {
-      ecomm_partner_name: "AJIO",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/AJIO_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia provides the best reward rate for fashion platforms like AJIO.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for HDFC or Axis bank offers during AJIO sales.",
-    },
-    {
-      ecomm_partner_name: "BookMyShow",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/6/6c/BookMyShow_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate applies to entertainment spends.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Check for HDFC or Axis bank offers for movie ticket discounts.",
-    },
-    {
-      ecomm_partner_name: "Goibibo",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Goibibo_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Atlas",
-          issuingBank: "Axis",
-          rewardPoints: "2 EDGE Miles per ₹100 on OTA spends",
-          reasoning: "Atlas offers 2 EDGE Miles per ₹100 on OTA bookings like Goibibo.",
-          source: "https://cardmaven.in/axis-bank-atlas-credit-card/",
-        },
-      ],
-      additional_notes:
-        "Direct airline/hotel bookings earn higher rewards, but for OTAs, Atlas is best among your cards.",
-    },
-    {
-      ecomm_partner_name: "Cleartrip",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Cleartrip_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Atlas",
-          issuingBank: "Axis",
-          rewardPoints: "2 EDGE Miles per ₹100 on OTA spends",
-          reasoning: "Atlas offers 2 EDGE Miles per ₹100 on OTA bookings like Cleartrip.",
-          source: "https://cardmaven.in/axis-bank-atlas-credit-card/",
-        },
-      ],
-      additional_notes:
-        "Direct airline/hotel bookings earn higher rewards, but for OTAs, Atlas is best among your cards.",
-    },
-    {
-      ecomm_partner_name: "Pepperfry",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Pepperfry_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate is best for furniture and home decor platforms.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Check for HDFC or Axis bank offers during Pepperfry sales.",
-    },
-    {
-      ecomm_partner_name: "Urban Company",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Urban_Company_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate applies to service platforms like Urban Company.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Check for HDFC or Axis bank offers for extra discounts.",
-    },
-    {
-      ecomm_partner_name: "Netmeds",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Netmeds_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate is best for online pharmacy purchases.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for HDFC or Axis bank offers during Netmeds sales.",
-    },
-    {
-      ecomm_partner_name: "Pharmeasy",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Pharmeasy_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate is best for online pharmacy purchases.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for HDFC or Axis bank offers during Pharmeasy sales.",
-    },
-    {
-      ecomm_partner_name: "Lenskart",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Lenskart_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate is best for eyewear purchases.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for HDFC or Axis bank offers during Lenskart sales.",
-    },
-    {
-      ecomm_partner_name: "FirstCry",
-      ecomm_partner_logo_url: "https://upload.wikimedia.org/wikipedia/commons/2/2e/FirstCry_Logo.png",
-      cards_to_use: [
-        {
-          cardName: "Infinia",
-          issuingBank: "HDFC",
-          rewardPoints: "3.3% reward rate (5 Reward Points per ₹150) on all spends",
-          reasoning: "Infinia's base reward rate is best for baby and kids' products.",
-          source: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card-metal-edition",
-        },
-      ],
-      additional_notes: "Look for HDFC or Axis bank offers during FirstCry sales.",
-    },
-  ],
-  overall_summary:
-    "For most e-commerce platforms in India, the HDFC Infinia card offers the highest base reward rate among your cards. For travel bookings via OTAs like MakeMyTrip, Goibibo, and Cleartrip, the Axis Atlas card is preferable due to its EDGE Miles accrual. Always check for limited-time bank offers during major sales for additional savings.",
-}
+import { Search, Info, ExternalLink, Loader2 } from "lucide-react"
+import { useAuth } from "@clerk/nextjs"
+import { toast } from "sonner"
+import { useUserCards } from "@/hooks/use-user-cards"
 
 // Types for the data
 interface CardToUse {
@@ -325,6 +36,86 @@ interface EcommerceRewardsData {
 export function EcommerceRewardsView() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCard, setSelectedCard] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [ecommerceRewardsData, setEcommerceRewardsData] = useState<EcommerceRewardsData | null>(null)
+  const { userId } = useAuth()
+  const { cards, isLoading: isLoadingCards, error: cardsError } = useUserCards()
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Wait until cards are loaded
+        if (isLoadingCards || !cards || cards.length === 0) return
+
+        setLoading(true)
+        setError(null)
+
+        // Prepare data for the API using the cards from the hook
+        const requestData = {
+          cards: cards.map(card => ({
+            cardName: card.name,
+            issuingBank: card.issuer,
+          })),
+          country: cards.length > 0 ? cards[0].country : "United States" // Default to US if no cards
+        }
+
+        // Call the ecommerce-advisor API
+        const response = await fetch('/api/ecommerce-advisor', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || 'Failed to fetch recommendations')
+        }
+
+        const data = await response.json()
+        setEcommerceRewardsData(data)
+      } catch (err: any) {
+        console.error('Error fetching ecommerce rewards data:', err)
+        setError(err.message || 'Something went wrong fetching recommendations')
+        toast.error('Failed to load e-commerce recommendations')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [cards, isLoadingCards])
+
+  // If still loading or no data yet
+  if (loading || isLoadingCards) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading e-commerce recommendations...</p>
+      </div>
+    )
+  }
+
+  // If there was an error
+  if (error || cardsError || !ecommerceRewardsData) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>E-commerce Rewards</CardTitle>
+          <CardDescription>Maximize your rewards across different platforms</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center h-32 text-center">
+            <p className="text-muted-foreground">
+              {error || cardsError?.message || "Unable to load e-commerce recommendations at this time. Please try again later."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   // Get unique card names for filtering
   const uniqueCards = Array.from(
@@ -427,23 +218,27 @@ export function EcommerceRewardsView() {
                         <Badge variant="outline" className="bg-primary/10">
                           {card.issuingBank} {card.cardName}
                         </Badge>
-                        <a
-                          href={card.source}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
-                        >
-                          Source <ExternalLink className="h-3 w-3" />
-                        </a>
+                        {card.source && (
+                          <a
+                            href={card.source}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+                          >
+                            Source <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
                       </div>
                       <p className="text-sm font-medium">{card.rewardPoints}</p>
                       <p className="text-xs text-muted-foreground">{card.reasoning}</p>
                     </div>
                   ))}
-                  <div className="pt-2 text-xs bg-muted/30 p-2 rounded-md">
-                    <p className="font-medium mb-1">Additional Notes:</p>
-                    <p>{recommendation.additional_notes}</p>
-                  </div>
+                  {recommendation.additional_notes && (
+                    <div className="pt-2 text-xs bg-muted/30 p-2 rounded-md">
+                      <p className="font-medium mb-1">Additional Notes:</p>
+                      <p>{recommendation.additional_notes}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -474,23 +269,27 @@ export function EcommerceRewardsView() {
                               <Badge variant="outline" className="bg-primary/10">
                                 {card.issuingBank} {card.cardName}
                               </Badge>
-                              <a
-                                href={card.source}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
-                              >
-                                Source <ExternalLink className="h-3 w-3" />
-                              </a>
+                              {card.source && (
+                                <a
+                                  href={card.source}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+                                >
+                                  Source <ExternalLink className="h-3 w-3" />
+                                </a>
+                              )}
                             </div>
                             <p className="text-sm font-medium">{card.rewardPoints}</p>
                             <p className="text-sm text-muted-foreground">{card.reasoning}</p>
                           </div>
                         ))}
-                        <div className="pt-2 text-sm bg-muted/30 p-3 rounded-md">
-                          <p className="font-medium mb-1">Additional Notes:</p>
-                          <p>{recommendation.additional_notes}</p>
-                        </div>
+                        {recommendation.additional_notes && (
+                          <div className="pt-2 text-sm bg-muted/30 p-3 rounded-md">
+                            <p className="font-medium mb-1">Additional Notes:</p>
+                            <p>{recommendation.additional_notes}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
