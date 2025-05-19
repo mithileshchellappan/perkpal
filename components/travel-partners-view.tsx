@@ -10,12 +10,14 @@ import { Plane, Hotel, ArrowRight, Star, Info, Infinity } from "lucide-react"
 import { CreditCardCarousel } from "@/components/credit-card-carousel"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { CreditCardType } from "@/lib/types"
+import type { PartnerProgram } from "@/types/cards"
 
 interface TravelPartner {
   id: string
   name: string
   type: "airline" | "hotel"
   transferRatio: string
+  transferUrl: string | null
   bonusMultiplier: number | null
   featuredPromo: string | null
   logo: string
@@ -36,63 +38,6 @@ const cardsWithLoungeAccess: Record<string, LoungeAccess> = {
   "Infinia Credit Card": { domestic: -1, international: -1 }, // Infinite access
 }
 
-const travelPartners: TravelPartner[] = [
-  {
-    id: "1",
-    name: "Delta SkyMiles",
-    type: "airline",
-    transferRatio: "1:1",
-    bonusMultiplier: 1.3,
-    featuredPromo: "30% transfer bonus until June 30",
-    logo: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "2",
-    name: "United MileagePlus",
-    type: "airline",
-    transferRatio: "1:1",
-    bonusMultiplier: null,
-    featuredPromo: null,
-    logo: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "3",
-    name: "Marriott Bonvoy",
-    type: "hotel",
-    transferRatio: "1:1.2",
-    bonusMultiplier: 1.25,
-    featuredPromo: "25% bonus on all transfers",
-    logo: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "4",
-    name: "Hilton Honors",
-    type: "hotel",
-    transferRatio: "1:2",
-    bonusMultiplier: null,
-    featuredPromo: null,
-    logo: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "5",
-    name: "American Airlines",
-    type: "airline",
-    transferRatio: "1:0.8",
-    bonusMultiplier: null,
-    featuredPromo: null,
-    logo: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "6",
-    name: "Hyatt",
-    type: "hotel",
-    transferRatio: "1:1",
-    bonusMultiplier: 1.1,
-    featuredPromo: "10% bonus on transfers over 10,000 points",
-    logo: "/placeholder.svg?height=40&width=40",
-  },
-]
-
 interface TravelPartnersViewProps {
   cards: CreditCardType[]
 }
@@ -103,6 +48,79 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
   const [selectedCard, setSelectedCard] = useState<CreditCardType | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [filteredPartners, setFilteredPartners] = useState<TravelPartner[]>([])
+  const [travelPartners, setTravelPartners] = useState<TravelPartner[]>([])
+  const [domesticLounges, setDomesticLounges] = useState<number>(0)
+  const [internationalLounges, setInternationalLounges] = useState<number>(0)
+
+  // Fetch partner programs from API when card is selected
+  useEffect(() => {
+    if (!selectedCard) return
+    
+    const fetchPartnerPrograms = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/partner-programs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cardName: selectedCard.name,
+            issuingBank: selectedCard.issuer,
+            country: selectedCard.country || 'US',
+          }),
+        })
+        
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          // Transform API response to our component's format
+          const partners = data.data.partners.map((partner: PartnerProgram, index: number) => {
+            // Parse transfer ratio to extract multiplier if available
+            const transferRatio = partner.transfer_ratio
+            const bonusMatch = partner.current_bonus ? partner.current_bonus.match(/(\d+)%/) : null
+            const bonusMultiplier = bonusMatch ? 1 + (parseInt(bonusMatch[1], 10) / 100) : null
+            console.log(partner)
+            return {
+              id: index.toString(),
+              name: partner.partner_name,
+              type: partner.partner_type.toLowerCase() as "airline" | "hotel",
+              transferRatio: transferRatio,
+              bonusMultiplier: bonusMultiplier,
+              transferUrl: partner.transfer_url,
+              featuredPromo: partner.current_bonus,
+              logo: partner.logo_url || "/placeholder.svg?height=40&width=40",
+            }
+          })
+          
+          setTravelPartners(partners)
+          
+          // Also set lounge access data
+          if (data.data.domestic_lounges_available !== null) {
+            setDomesticLounges(data.data.domestic_lounges_available)
+          } else if (cardsWithLoungeAccess[selectedCard.name]) {
+            setDomesticLounges(cardsWithLoungeAccess[selectedCard.name].domestic)
+          } else {
+            setDomesticLounges(0)
+          }
+          
+          if (data.data.international_lounges_available !== null) {
+            setInternationalLounges(data.data.international_lounges_available)
+          } else if (cardsWithLoungeAccess[selectedCard.name]) {
+            setInternationalLounges(cardsWithLoungeAccess[selectedCard.name].international)
+          } else {
+            setInternationalLounges(0)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching partner programs:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchPartnerPrograms()
+  }, [selectedCard])
 
   useEffect(() => {
     // Filter partners based on search term and type
@@ -113,7 +131,7 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
     })
 
     setFilteredPartners(filtered)
-  }, [searchTerm, filterType])
+  }, [searchTerm, filterType, travelPartners])
 
   // Helper function to format lounge access display
   const formatLoungeAccess = (count: number) => {
@@ -129,12 +147,7 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
   }
 
   const handleSelectCard = (card: CreditCardType) => {
-    setIsLoading(true)
-    // Simulate loading data
-    setTimeout(() => {
-      setSelectedCard(card)
-      setIsLoading(false)
-    }, 1500)
+    setSelectedCard(card)
   }
 
   return (
@@ -211,7 +224,7 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
                   <div className="text-center">
                     <h3 className="text-sm font-medium mb-2">Domestic Lounges</h3>
                     <div className="text-2xl font-bold">
-                      {formatLoungeAccess(cardsWithLoungeAccess[selectedCard.name]?.domestic || 0)}
+                      {formatLoungeAccess(domesticLounges)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Visits per year</p>
                   </div>
@@ -220,7 +233,7 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
                   <div className="text-center">
                     <h3 className="text-sm font-medium mb-2">International Lounges</h3>
                     <div className="text-2xl font-bold">
-                      {formatLoungeAccess(cardsWithLoungeAccess[selectedCard.name]?.international || 0)}
+                      {formatLoungeAccess(internationalLounges)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">Visits per year</p>
                   </div>
@@ -281,47 +294,57 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPartners.map((partner) => (
-                      <TableRow key={partner.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={partner.logo || "/placeholder.svg"}
-                              alt={partner.name}
-                              className="h-8 w-8 rounded-full"
-                            />
-                            <div>
-                              <div className="font-medium">{partner.name}</div>
+                    {filteredPartners.length > 0 ? (
+                      filteredPartners.map((partner) => (
+                        <TableRow key={partner.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={partner.logo || "/placeholder.svg"}
+                                alt={partner.name}
+                                className="h-8 w-8 rounded-full"
+                              />
+                              <div>
+                                <div className="font-medium">{partner.name}</div>
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {partner.type === "airline" ? (
-                              <Plane className="h-3 w-3 mr-1" />
-                            ) : (
-                              <Hotel className="h-3 w-3 mr-1" />
-                            )}
-                            {partner.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{partner.transferRatio}</TableCell>
-                        <TableCell>
-                          {partner.bonusMultiplier ? (
-                            <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20">
-                              {((partner.bonusMultiplier - 1) * 100).toFixed(0)}% Bonus
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {partner.type === "airline" ? (
+                                <Plane className="h-3 w-3 mr-1" />
+                              ) : (
+                                <Hotel className="h-3 w-3 mr-1" />
+                              )}
+                              {partner.type}
                             </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">None</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" className="gap-1">
-                            Transfer <ArrowRight className="h-3 w-3" />
-                          </Button>
+                          </TableCell>
+                          <TableCell>{partner.transferRatio}</TableCell>
+                          <TableCell>
+                            {partner.bonusMultiplier ? (
+                              <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20">
+                                {((partner.bonusMultiplier - 1) * 100).toFixed(0)}% Bonus
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">None</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button disabled={!partner.transferUrl} size="sm" className="gap-1" onClick={()=>{
+                              window.open(partner.transferUrl || '', '_blank')
+                            }}>
+                              Transfer <ArrowRight className="h-3 w-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center">
+                          No partners found.
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -374,6 +397,15 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
                       </CardContent>
                     </Card>
                   ))}
+                {travelPartners.filter((partner) => partner.featuredPromo).length === 0 && (
+                  <div className="md:col-span-2 p-6 text-center">
+                    <Info className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <h3 className="text-base font-medium mb-1">No Featured Promotions</h3>
+                    <p className="text-sm text-muted-foreground">
+                      There are currently no special promotions available for this card.
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

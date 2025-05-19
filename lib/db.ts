@@ -5,6 +5,14 @@ import { CardPointsEntry } from '@/types/points';
 // Re-export for use in other modules if needed, or use the internal one directly if not meant to be widely public
 export type ComprehensiveCardAnalysisResponse = InternalComprehensiveCardAnalysisResponse;
 
+// Utility function to check if Supabase client is initialized
+function assertSupabaseClient() {
+  if (!supabase) {
+    throw new Error('Supabase client not initialized. Please check your environment variables.');
+  }
+  return supabase;
+}
+
 // --- Card Analysis Cache Functions ---
 
 export async function getCachedCardAnalysis(
@@ -179,22 +187,35 @@ export async function getCachedCardPartnerPrograms(
   issuingBank: string,
   country: string
 ): Promise<CardPartnerProgramsResponse | null> {
-  const { data, error } = await supabase
-    .from('partner_programs')
-    .select('*')
-    .eq('card_name', cardName)
-    .eq('issuing_bank', issuingBank)
-    .eq('country', country)
-    .single();
-
-  if (error || !data) {
-    return null;
-  }
-
   try {
-    return JSON.parse(data.partners_data) as CardPartnerProgramsResponse;
+    const db = assertSupabaseClient();
+    
+    const { data, error } = await db
+      .from('partner_programs')
+      .select('*')
+      .eq('card_name', cardName)
+      .eq('issuing_bank', issuingBank)
+      .eq('country', country)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+    
+    // Check if the data is expired
+    if (data.expires_at && new Date(data.expires_at as string) < new Date()) {
+      console.log(`Cached partner programs data for ${cardName} has expired`);
+      return null;
+    }
+
+    try {
+      return JSON.parse(data.partners_data as string) as CardPartnerProgramsResponse;
+    } catch (e) {
+      console.error('Error parsing partner programs data:', e);
+      return null;
+    }
   } catch (e) {
-    console.error('Error parsing partner programs data:', e);
+    console.error('Error retrieving cached partner programs:', e);
     return null;
   }
 }
@@ -205,21 +226,32 @@ export async function setCachedCardPartnerPrograms(
   country: string,
   data: CardPartnerProgramsResponse
 ): Promise<void> {
-  const { error } = await supabase
-    .from('partner_programs')
-    .upsert(
-      {
-        card_name: cardName,
-        issuing_bank: issuingBank,
-        country: country,
-        partners_data: JSON.stringify(data),
-        timestamp: new Date().toISOString(),
-      },
-      { onConflict: 'card_name,issuing_bank,country' }
-    );
+  try {
+    const db = assertSupabaseClient();
+    
+    // Calculate expiration date (1 week from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 1 week TTL
+    
+    const { error } = await db
+      .from('partner_programs')
+      .upsert(
+        {
+          card_name: cardName,
+          issuing_bank: issuingBank,
+          country: country,
+          partners_data: JSON.stringify(data),
+          timestamp: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(), // Add expiration date
+        },
+        { onConflict: 'card_name,issuing_bank,country' }
+      );
 
-  if (error) {
-    console.error('Error setting cached partner programs:', error);
+    if (error) {
+      console.error('Error setting cached partner programs:', error);
+    }
+  } catch (e) {
+    console.error('Error caching partner programs:', e);
   }
 }
 

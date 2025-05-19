@@ -3,11 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
+export const supabase = createClient(
+  supabaseUrl, 
+  supabaseKey, 
+  {
+    auth: { 
+      persistSession: false 
+    }
+  }
+);
+
 if (!supabaseUrl || !supabaseKey) {
   console.error('ERROR: Supabase URL or Key is missing. Please check your environment variables:');
   console.error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
   
-  // In development, provide more guidance
   if (process.env.NODE_ENV === 'development') {
     console.error('\nTo fix this issue:');
     console.error('1. Create a .env.local file in the project root');
@@ -16,11 +25,7 @@ if (!supabaseUrl || !supabaseKey) {
     console.error('   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here');
     console.error('3. Restart the development server');
   }
-} else {
-  console.log('Supabase client initialized successfully');
 }
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Helper function to format dates for Supabase
 export function toISODate(date: Date): string {

@@ -276,7 +276,7 @@ export function CreditCard({ card, isActive, isSelected = false, hideDetails = f
         <div className="flex justify-between items-end mt-4">
           <div>
             <p className="text-xs text-white/80">Card Name</p>
-            <p className="font-bold text-white">{card.name.replace(card.issuer.replace('Bank', ''), '')}</p>
+            <p className="font-bold text-white">{card.name.replace(card.issuer.replace('Bank', ''), '').replace('Card', '').replace('Credit', '')}</p>
           </div>
           {!hideDetails && card.pointsBalance > 0 && (
             <div className="text-right">
