@@ -343,7 +343,7 @@ function getCategoryIcon(category: string): React.ReactNode {
   if (categoryLower.includes('shopping')) return <ShoppingBag className="h-4 w-4" />
   if (categoryLower.includes('groceries')) return <Home className="h-4 w-4" />
   if (categoryLower.includes('fuel') || categoryLower.includes('gas')) return <Car className="h-4 w-4" />
-  
+
   // Default icon
   return <ShoppingBag className="h-4 w-4" />
 }
@@ -392,30 +392,30 @@ export function RewardsView() {
       setIsLoading(true)
       try {
         const response = await fetch(`/api/statement-analysis?userId=${userId}`)
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch statement analyses')
         }
-        
+
         const data = await response.json()
-        
+
         if (data.success && data.analyses && data.analyses.length > 0) {
           // Group analyses by statement period
           const groupedAnalyses: Record<string, CardStatementAnalysisResponse[]> = {}
-          
+
           data.analyses.forEach((analysis: CardStatementAnalysisResponse) => {
             if (!groupedAnalyses[analysis.statementPeriod]) {
               groupedAnalyses[analysis.statementPeriod] = []
             }
             groupedAnalyses[analysis.statementPeriod].push(analysis)
           })
-          
+
           setAnalysesByMonth(groupedAnalyses)
-          
+
           // Set available months from the analyses
           const periods = Object.keys(groupedAnalyses)
           setAvailableMonths(periods)
-          
+
           // Set the most recent month as selected
           if (periods.length > 0) {
             setSelectedMonth(periods[0])
@@ -431,7 +431,7 @@ export function RewardsView() {
         setIsLoading(false)
       }
     }
-    
+
     fetchStatementAnalyses()
   }, [userId, isSignedIn])
 
@@ -441,20 +441,20 @@ export function RewardsView() {
       setRewardCategories([])
       return
     }
-    
+
     const analyses = analysesByMonth[selectedMonth]
-    
+
     // Convert analyses to reward categories format
     const categoryMap = new Map<string, RewardCategory>()
-    
+
     analyses.forEach(analysis => {
       analysis.categories.forEach(category => {
         const categoryName = category.category
         const categoryKey = categoryName.toLowerCase()
-        
+
         if (!categoryMap.has(categoryKey)) {
           categoryMap.set(categoryKey, {
-            name: categoryName,
+            name: categoryName.charAt(0).toUpperCase() + categoryName.slice(1),
             icon: getCategoryIcon(categoryName),
             earned: 0,
             potential: 0,
@@ -462,11 +462,11 @@ export function RewardsView() {
             cards: []
           })
         }
-        
+
         const existing = categoryMap.get(categoryKey)!
         existing.earned += category.points_earned
         existing.potential += category.potential_points
-        
+
         // Add card info
         existing.cards.push({
           name: analysis.cardName,
@@ -475,7 +475,7 @@ export function RewardsView() {
         })
       })
     })
-    
+
     setRewardCategories(Array.from(categoryMap.values()))
   }, [selectedMonth, analysesByMonth])
 
@@ -644,25 +644,25 @@ export function RewardsView() {
                         </HoverCard>
                       </div>
                       <span className="text-sm font-medium">
-                        {Math.round((category.earned / category.potential) * 100)}%
+                        {category.potential ? Math.round((category.earned / category.potential) * 100) : 0}%
                       </span>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
                       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full"
                           style={{
-                            width: `${(category.earned / category.potential) * 100}%`,
+                            width: `${category.potential ? (category.earned / category.potential) * 100 : 0}%`,
                             background: category.color
                           }}
                         />
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>{category.earned.toLocaleString()} pts earned</span>
+                        <span>{category.earned ?? 0} pts earned</span>
                         <span className="text-muted-foreground">
-                          {category.potential.toLocaleString()} pts potential
+                          {category.potential ?? 0} pts potential
                         </span>
                       </div>
                     </div>
@@ -699,12 +699,17 @@ export function RewardsView() {
                   <div className="flex justify-between items-center">
                     <span>Efficiency Rate</span>
                     <span className="font-bold">
-                      {Math.round(
-                        (rewardCategories.reduce((sum, cat) => sum + cat.earned, 0) /
-                          rewardCategories.reduce((sum, cat) => sum + cat.potential, 0)) *
-                          100,
-                      )}
-                      %
+                      {(() => {
+                        const earned = rewardCategories.reduce((sum, cat) => sum + cat.earned, 0);
+                        const potential = rewardCategories.reduce((sum, cat) => sum + cat.potential, 0);
+                        
+                        // Check if potential is zero or the calculation would result in NaN/Infinite
+                        if (!potential || isNaN(earned / potential)) {
+                          return '0%';
+                        }
+                        
+                        return `${Math.round((earned / potential) * 100)}%`;
+                      })()}
                     </span>
                   </div>
                 </div>

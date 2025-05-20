@@ -2,24 +2,11 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import {
-  Search,
-  Plus,
-  Lightbulb,
-  ArrowUp,
-  PenSquare,
-  RefreshCcw,
-  Copy,
-  Share2,
-  ThumbsUp,
-  ThumbsDown,
-  Bot,
-} from "lucide-react"
+import { ArrowUp, PenSquare, Bot } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
-type ActiveButton = "none" | "add" | "deepSearch" | "think"
 type MessageType = "user" | "system"
 
 interface Message {
@@ -53,7 +40,6 @@ export function AiAssistantView() {
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const newSectionRef = useRef<HTMLDivElement>(null)
   const [hasTyped, setHasTyped] = useState(false)
-  const [activeButton, setActiveButton] = useState<ActiveButton>("none")
   const [isMobile, setIsMobile] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -78,13 +64,6 @@ export function AiAssistantView() {
   // Store selection state
   const selectionStateRef = useRef<{ start: number | null; end: number | null }>({ start: null, end: null })
 
-  // Constants for layout calculations to account for the padding values
-  const HEADER_HEIGHT = 48 // 12px height + padding
-  const INPUT_AREA_HEIGHT = 100 // Approximate height of input area with padding
-  const TOP_PADDING = 48 // pt-12 (3rem = 48px)
-  const BOTTOM_PADDING = 128 // pb-32 (8rem = 128px)
-  const ADDITIONAL_OFFSET = 16 // Reduced offset for fine-tuning
-
   // Check if device is mobile and get viewport height
   useEffect(() => {
     const checkMobileAndViewport = () => {
@@ -105,7 +84,7 @@ export function AiAssistantView() {
 
     // Set initial height
     if (mainContainerRef.current) {
-      mainContainerRef.current.style.height = isMobile ? `${viewportHeight}px` : "100svh"
+      mainContainerRef.current.style.height = isMobile ? `${viewportHeight}px` : "100%"
     }
 
     // Update on resize
@@ -200,12 +179,6 @@ export function AiAssistantView() {
       shouldFocusAfterStreamingRef.current = false
     }
   }, [isStreaming, isMobile])
-
-  // Calculate available content height (viewport minus header and input)
-  const getContentHeight = () => {
-    // Calculate available height by subtracting the top and bottom padding from viewport height
-    return viewportHeight - TOP_PADDING - BOTTOM_PADDING - ADDITIONAL_OFFSET
-  }
 
   // Save the current selection state
   const saveSelectionState = () => {
@@ -363,7 +336,7 @@ export function AiAssistantView() {
       const textarea = textareaRef.current
       if (textarea) {
         textarea.style.height = "auto"
-        const newHeight = Math.max(24, Math.min(textarea.scrollHeight, 160))
+        const newHeight = Math.max(24, Math.min(textarea.scrollHeight, 80))
         textarea.style.height = `${newHeight}px`
       }
     }
@@ -394,7 +367,6 @@ export function AiAssistantView() {
       // Reset input before starting the AI response
       setInputValue("")
       setHasTyped(false)
-      setActiveButton("none")
 
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto"
@@ -433,20 +405,6 @@ export function AiAssistantView() {
     }
   }
 
-  const toggleButton = (button: ActiveButton) => {
-    if (!isStreaming) {
-      // Save the current selection state before toggling
-      saveSelectionState()
-
-      setActiveButton((prev) => (prev === button ? "none" : button))
-
-      // Restore the selection state after toggling
-      setTimeout(() => {
-        restoreSelectionState()
-      }, 0)
-    }
-  }
-
   const renderMessage = (message: Message) => {
     const isCompleted = completedMessages.has(message.id)
 
@@ -457,59 +415,37 @@ export function AiAssistantView() {
             "max-w-[80%] px-4 py-2 rounded-2xl",
             message.type === "user"
               ? "bg-primary text-primary-foreground rounded-br-none"
-              : "bg-background border border-border text-foreground rounded-bl-none",
+              : "text-foreground rounded-bl-none",
           )}
         >
           {/* For user messages or completed system messages, render without animation */}
-          {message.content && (
-            <span className={message.type === "system" && !isCompleted ? "animate-fade-in" : ""}>
-              {message.content}
-            </span>
-          )}
+          {message.content && message.id !== streamingMessageId && <span>{message.content}</span>}
 
           {/* For streaming messages, render with animation */}
           {message.id === streamingMessageId && (
-            <span className="inline">
-              {streamingWords.map((word) => (
-                <span key={word.id} className="animate-fade-in inline">
+            <div className="streaming-container">
+              {streamingWords.map((word, index) => (
+                <span
+                  key={word.id}
+                  className="streaming-word"
+                  style={{
+                    animation: `fadeIn 0.3s ease-out forwards`,
+                    animationDelay: `${index * 0.01}s`,
+                    opacity: 0,
+                  }}
+                >
                   {word.text}
                 </span>
               ))}
-            </span>
+            </div>
           )}
         </div>
-
-        {/* Message actions */}
-        {message.type === "system" && message.completed && (
-          <div className="flex items-center gap-2 px-4 mt-1 mb-2">
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <RefreshCcw className="h-4 w-4" />
-            </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <Copy className="h-4 w-4" />
-            </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <Share2 className="h-4 w-4" />
-            </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <ThumbsUp className="h-4 w-4" />
-            </button>
-            <button className="text-muted-foreground hover:text-foreground transition-colors">
-              <ThumbsDown className="h-4 w-4" />
-            </button>
-          </div>
-        )}
       </div>
     )
   }
 
-  // Determine if a section should have fixed height (only for sections after the first)
-  const shouldApplyHeight = (sectionIndex: number) => {
-    return sectionIndex > 0
-  }
-
   return (
-    <div ref={mainContainerRef} className="bg-background flex flex-col overflow-hidden w-full h-full">
+    <div ref={mainContainerRef} className="flex flex-col h-full w-full bg-background">
       <header className="sticky top-0 h-12 flex items-center px-4 z-20 bg-background border-b">
         <div className="w-full flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
@@ -524,7 +460,11 @@ export function AiAssistantView() {
         </div>
       </header>
 
-      <div ref={chatContainerRef} className="flex-grow px-4 py-4 overflow-y-auto">
+      <div
+        ref={chatContainerRef}
+        className="flex-grow overflow-y-auto px-4 py-4"
+        style={{ height: "calc(100% - 12rem)" }}
+      >
         <div className="max-w-3xl mx-auto space-y-4">
           {messageSections.map((section, sectionIndex) => (
             <div
@@ -532,14 +472,7 @@ export function AiAssistantView() {
               ref={sectionIndex === messageSections.length - 1 && section.isNewSection ? newSectionRef : null}
             >
               {section.isNewSection && (
-                <div
-                  style={
-                    section.isActive && shouldApplyHeight(section.sectionIndex)
-                      ? { height: `${getContentHeight()}px` }
-                      : {}
-                  }
-                  className="pt-4 flex flex-col justify-start"
-                >
+                <div className="pt-4 flex flex-col justify-start">
                   {section.messages.map((message) => renderMessage(message))}
                 </div>
               )}
@@ -551,21 +484,21 @@ export function AiAssistantView() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 p-4 bg-background border-t">
+      <div className="sticky bottom-0 p-4 bg-background border-t mt-auto">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
           <div
             ref={inputContainerRef}
             className={cn(
-              "relative w-full rounded-3xl border bg-background p-3 cursor-text",
+              "relative w-full rounded-3xl border bg-background p-2 cursor-text",
               isStreaming && "opacity-80",
             )}
             onClick={handleInputContainerClick}
           >
-            <div className="pb-9">
+            <div className="pb-6">
               <Textarea
                 ref={textareaRef}
                 placeholder={isStreaming ? "Waiting for response..." : "Ask anything about your cards and points..."}
-                className="min-h-[24px] max-h-[160px] w-full rounded-3xl border-0 bg-transparent placeholder:text-muted-foreground placeholder:text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-base pl-2 pr-4 pt-0 pb-0 resize-none overflow-y-auto leading-tight"
+                className="min-h-[24px] max-h-[80px] w-full rounded-3xl border-0 bg-transparent placeholder:text-muted-foreground placeholder:text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-base pl-2 pr-4 pt-0 pb-0 resize-none overflow-y-auto leading-tight"
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
@@ -579,61 +512,7 @@ export function AiAssistantView() {
             </div>
 
             <div className="absolute bottom-3 left-3 right-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "rounded-full h-8 w-8 flex-shrink-0 p-0 transition-colors",
-                      activeButton === "add" && "bg-muted",
-                    )}
-                    onClick={() => toggleButton("add")}
-                    disabled={isStreaming}
-                  >
-                    <Plus
-                      className={cn("h-4 w-4 text-muted-foreground", activeButton === "add" && "text-foreground")}
-                    />
-                    <span className="sr-only">Add</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                      "rounded-full h-8 px-3 flex items-center gap-1.5 transition-colors",
-                      activeButton === "deepSearch" && "bg-muted",
-                    )}
-                    onClick={() => toggleButton("deepSearch")}
-                    disabled={isStreaming}
-                  >
-                    <Search
-                      className={cn(
-                        "h-4 w-4 text-muted-foreground",
-                        activeButton === "deepSearch" && "text-foreground",
-                      )}
-                    />
-                    <span className={cn("text-sm", activeButton === "deepSearch" && "font-medium")}>DeepSearch</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                      "rounded-full h-8 px-3 flex items-center gap-1.5 transition-colors",
-                      activeButton === "think" && "bg-muted",
-                    )}
-                    onClick={() => toggleButton("think")}
-                    disabled={isStreaming}
-                  >
-                    <Lightbulb
-                      className={cn("h-4 w-4 text-muted-foreground", activeButton === "think" && "text-foreground")}
-                    />
-                    <span className={cn("text-sm", activeButton === "think" && "font-medium")}>Think</span>
-                  </Button>
-                </div>
-
+              <div className="flex items-center justify-end">
                 <Button
                   type="submit"
                   variant="outline"
@@ -657,6 +536,26 @@ export function AiAssistantView() {
           </div>
         </form>
       </div>
+
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        .streaming-container {
+          display: inline;
+        }
+        
+        .streaming-word {
+          display: inline;
+          opacity: 0;
+        }
+      `}</style>
     </div>
   )
 }

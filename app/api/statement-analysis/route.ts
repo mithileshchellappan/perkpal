@@ -133,6 +133,7 @@ export async function GET(request: NextRequest) {
       totalPointsEarned: analysis.total_points_earned,
       totalPotentialPoints: analysis.total_potential_points,
       pointsMissedPercentage: analysis.points_missed_percentage,
+      pointsBalance: analysis.points_balance,
       categories: JSON.parse(analysis.categories || '[]'),
       createdAt: analysis.created_at
     }));

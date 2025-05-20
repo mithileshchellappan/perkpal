@@ -1,23 +1,108 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Line, LineChart, ResponsiveContainer, Tooltip } from "recharts"
+import { CardPointsEntry } from "@/types/points"
 
-const data = [
-  { date: "Jan", value: 1200 },
-  { date: "Feb", value: 1350 },
-  { date: "Mar", value: 1500 },
-  { date: "Apr", value: 1650 },
-  { date: "May", value: 1800 },
-  { date: "Jun", value: 2000 },
-  { date: "Jul", value: 2200 },
-  { date: "Aug", value: 2400 },
-  { date: "Sep", value: 2600 },
-  { date: "Oct", value: 2800 },
-  { date: "Nov", value: 3000 },
-  { date: "Dec", value: 3200 },
-]
+export function StatsChart({ cardId }: { cardId?: string }) {
+  const [data, setData] = useState<{ date: string; value: number }[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-export function StatsChart() {
+  useEffect(() => {
+    async function fetchPointsHistory() {
+      setIsLoading(true)
+      setError(null)
+      
+      try {
+        // Build query params
+        const params = new URLSearchParams()
+        if (cardId) {
+          params.append('cardId', cardId)
+        }
+        
+        // Get data for the past 12 months
+        const currentDate = new Date()
+        const currentYear = currentDate.getFullYear()
+        const currentMonth = currentDate.getMonth() + 1 // 1-12
+        
+        let startDate = new Date()
+        startDate.setFullYear(currentYear - 1)
+        
+        params.append('startYear', startDate.getFullYear().toString())
+        params.append('startMonth', (startDate.getMonth() + 1).toString())
+        params.append('endYear', currentYear.toString())
+        params.append('endMonth', currentMonth.toString())
+        
+        const response = await fetch(`/api/card-points?${params.toString()}`)
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching points history: ${response.status}`)
+        }
+        
+        const result = await response.json()
+        
+        if (!result.success || !result.data) {
+          throw new Error('Failed to fetch points history')
+        }
+        
+        // Transform data
+        const formattedData = formatPointsData(result.data)
+        setData(formattedData)
+      } catch (err) {
+        console.error('Error fetching points history:', err)
+        setError(err instanceof Error ? err.message : 'An unknown error occurred')
+        // Use empty array if fetch fails
+        setData([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    fetchPointsHistory()
+  }, [cardId])
+  
+  // Format the data from the API into the format expected by the chart
+  function formatPointsData(pointsEntries: CardPointsEntry[]): { date: string; value: number }[] {
+    // If no data, return empty array
+    if (!pointsEntries || pointsEntries.length === 0) {
+      return []
+    }
+    
+    // Map month numbers to abbreviations
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    
+    // Convert the API data to the format needed for the chart
+    return pointsEntries.map(entry => ({
+      date: monthNames[entry.month - 1], // Convert 1-based month to 0-based array index
+      value: entry.pointsBalance
+    }))
+  }
+
+  if (isLoading) {
+    return (
+      <div className="h-[300px] w-full flex items-center justify-center">
+        <p className="text-muted-foreground">Loading points history...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="h-[300px] w-full flex items-center justify-center">
+        <p className="text-muted-foreground">Error loading points history: {error}</p>
+      </div>
+    )
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="h-[300px] w-full flex items-center justify-center">
+        <p className="text-muted-foreground">No points history available</p>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">

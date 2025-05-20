@@ -183,19 +183,16 @@ export default function Page() {
                   title="Total Points"
                   value={totalPoints.toLocaleString()}
                   icon={<Gift className="h-4 w-4 text-primary" />}
-                  change={{ value: "2,340", percentage: "+5.2%", isPositive: true }}
                 />
                 <MetricsCard
                   title="Cash Value"
                   value={`${totalCashValue.toLocaleString()} ${baseValueCurrency}`}
                   icon={<Tag className="h-4 w-4 text-primary" />}
-                  change={{ value: "$120.40", percentage: "+3.8%", isPositive: true }}
                 />
                 <MetricsCard
                   title="Annual Fees"
                   value={`${totalAnnualFees.toLocaleString()} ${baseValueCurrency}`}
                   icon={<CreditCard className="h-4 w-4 text-primary" />}
-                  change={{ value: "$0", percentage: "0%", isPositive: true }}
                 />
               </div>
 
@@ -225,7 +222,7 @@ export default function Page() {
                     </Button>
                   </div>
                 </div>
-                <StatsChart />
+                <StatsChart cardId={selectedCard?.id} />
               </Card>
 
               <div className="mt-6">

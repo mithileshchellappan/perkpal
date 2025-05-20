@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { addCardPointsEntry, getCardPointsHistory } from '@/lib/db';
 import { AddCardPointsRequestSchema } from '@/types/points';
+import { auth } from '@clerk/nextjs/server';
 
 /**
  * GET card points history
  */
 export async function GET(request: Request) {
-  // For now, using a test user ID. In production, use Clerk auth
-  const userId = 'test';
+  const { userId } = await auth();
   
   try {
     // Parse query parameters
@@ -61,8 +61,7 @@ export async function GET(request: Request) {
  * POST - Add a new card points entry
  */
 export async function POST(request: Request) {
-  // For now, using a test user ID. In production, use Clerk auth
-  const userId = 'test';
+  const { userId } = await auth();
   
   try {
     const body = await request.json();
