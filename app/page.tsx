@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { LayoutDashboard } from "lucide-react"
+import { LayoutDashboard, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { MetricsCard } from "@/components/metrics-card"
@@ -22,19 +22,21 @@ import type { CreditCardType } from "@/lib/types"
 import { CreditCard, Gift, Globe, BarChart, Tag, Bot, Search } from "lucide-react"
 import { useAuth } from "@clerk/nextjs"
 import { useUserCards } from "@/hooks/use-user-cards"
+import { cn } from "@/lib/utils"
 
 export default function Page() {
   const { isLoaded, isSignedIn } = useAuth()
   const [isLoadingAuth, setIsLoadingAuth] = useState(true)
-  
-  const { 
-    cards, 
-    isLoading: isLoadingCards, 
-    error: cardsError, 
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const {
+    cards,
+    isLoading: isLoadingCards,
+    error: cardsError,
     refetch: refetchCards,
     addCard,
     isAddingCard,
-    addCardError
+    addCardError,
   } = useUserCards()
 
   const [selectedCard, setSelectedCard] = useState<CreditCardType | null>(null)
@@ -55,6 +57,14 @@ export default function Page() {
     }
   }, [isLoaded])
 
+  // Load sidebar state from localStorage on component mount
+  useEffect(() => {
+    const savedState = localStorage.getItem("sidebarCollapsed")
+    if (savedState !== null) {
+      setSidebarCollapsed(savedState === "true")
+    }
+  }, [])
+
   const handleAddCard = (card: CreditCardType) => {
     setShowAddModal(false)
     console.log("Adding card (placeholder - needs backend integration & refetch):", card)
@@ -72,6 +82,13 @@ export default function Page() {
     // This is now handled by Clerk in the LandingPage component
   }
 
+  const toggleSidebar = () => {
+    const newState = !sidebarCollapsed
+    setSidebarCollapsed(newState)
+    // Save to localStorage for persistence
+    localStorage.setItem("sidebarCollapsed", String(newState))
+  }
+
   if (isLoadingAuth || isLoadingCards) {
     return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>
   }
@@ -84,88 +101,122 @@ export default function Page() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
         <p>Error loading your cards: {cardsError.message}</p>
-        <Button onClick={() => refetchCards()} className="mt-4">Try Again</Button>
+        <Button onClick={() => refetchCards()} className="mt-4">
+          Try Again
+        </Button>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="grid lg:grid-cols-[280px_1fr]">
-        <aside className="border-r bg-background/50 backdrop-blur flex flex-col h-screen">
-          <div className="flex h-16 items-center gap-2 border-b px-6">
-            <CreditCard className="h-6 w-6" />
-            <span className="font-bold">PerkPal</span>
+      <div
+        className={cn(
+          "grid transition-all duration-300",
+          sidebarCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[280px_1fr]",
+        )}
+      >
+        <aside className="border-r bg-background/50 backdrop-blur flex flex-col h-screen relative">
+          <div className="flex h-16 items-center justify-between border-b px-6 relative">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-6 w-6" />
+              {!sidebarCollapsed && <span className="font-bold">PerkPal</span>}
+            </div>
+
+            {/* Toggle button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full border border-border bg-background shadow-md"
+              onClick={toggleSidebar}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+            </Button>
           </div>
           <nav className="space-y-2 px-2 flex-1">
             <Button
               variant={activeView === "dashboard" ? "default" : "ghost"}
-              className="w-full justify-start gap-2"
+              className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("dashboard")}
+              title="Dashboard"
             >
               <LayoutDashboard className="h-4 w-4" />
-              Dashboard
+              {!sidebarCollapsed && <span>Dashboard</span>}
             </Button>
             <Button
               variant={activeView === "cards" ? "default" : "ghost"}
-              className="w-full justify-start gap-2"
+              className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("cards")}
+              title="My Cards"
             >
               <CreditCard className="h-4 w-4" />
-              My Cards
+              {!sidebarCollapsed && <span>My Cards</span>}
             </Button>
             <Button
               variant={activeView === "rewards" ? "default" : "ghost"}
-              className="w-full justify-start gap-2"
+              className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("rewards")}
+              title="Rewards"
             >
               <Gift className="h-4 w-4" />
-              Rewards
+              {!sidebarCollapsed && <span>Rewards</span>}
             </Button>
             <Button
               variant={activeView === "promotions" ? "default" : "ghost"}
-              className="w-full justify-start gap-2"
+              className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("promotions")}
+              title="Promotions"
             >
               <Tag className="h-4 w-4" />
-              Promotions
+              {!sidebarCollapsed && <span>Promotions</span>}
             </Button>
             <Button
               variant={activeView === "travel" ? "default" : "ghost"}
-              className="w-full justify-start gap-2"
+              className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("travel")}
+              title="Travel Partners"
             >
               <Globe className="h-4 w-4" />
-              Travel Partners
+              {!sidebarCollapsed && <span>Travel Partners</span>}
             </Button>
             <Button
               variant={activeView === "compare" ? "default" : "ghost"}
-              className="w-full justify-start gap-2"
+              className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("compare")}
+              title="Card Comparison"
             >
               <BarChart className="h-4 w-4" />
-              Card Comparison
+              {!sidebarCollapsed && <span>Card Comparison</span>}
             </Button>
             <Button
               variant={activeView === "new-card" ? "default" : "ghost"}
-              className="w-full justify-start gap-2"
+              className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("new-card")}
+              title="New Card"
             >
               <Search className="h-4 w-4" />
-              New Card
+              {!sidebarCollapsed && <span>New Card</span>}
             </Button>
             <Button
               variant={activeView === "assistant" ? "default" : "ghost"}
-              className="w-full justify-start gap-2"
+              className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("assistant")}
+              title="Assistant"
             >
               <Bot className="h-4 w-4" />
-              AI Assistant
+              {!sidebarCollapsed && <span>Assistant</span>}
             </Button>
           </nav>
 
-          <div className="mt-auto border-t pt-2 p-2">
-            <UserProfile />
+          <div className={cn("mt-auto border-t pt-2 p-2", sidebarCollapsed && "flex justify-center")}>
+            {!sidebarCollapsed ? (
+              <UserProfile />
+            ) : (
+              <div className="w-10 h-10 rounded-full overflow-hidden">
+                <UserProfile/>
+              </div>
+            )}
           </div>
         </aside>
         <main className="overflow-auto h-screen">
@@ -270,10 +321,10 @@ export default function Page() {
         </main>
       </div>
 
-      <AddEditCardModal 
-        open={showAddModal} 
-        onOpenChange={setShowAddModal} 
-        onSave={handleAddCard} 
+      <AddEditCardModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        onSave={handleAddCard}
         addCardAction={addCard}
         isAddingCardAction={isAddingCard}
         addCardErrorAction={addCardError}

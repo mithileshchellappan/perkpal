@@ -214,12 +214,12 @@ Instructions:
   }
 
   return (
-    <div ref={mainContainerRef} className="flex pt-4 flex-col h-full w-full bg-background">
-      <header className="sticky top-0 h-12 flex items-center px-4 z-20 bg-background border-b">
+    <div ref={mainContainerRef} className="flex pt-4 flex-col h-full w-full">
+      <header className="sticky top-0 h-12 flex items-center px-4 z-20 border-b">
         <div className="w-full flex items-center justify-between px-2">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            <h1 className="text-2xl font-medium">Perplexity</h1>
+            <h1 className="text-2xl font-medium">Assistant</h1>
           </div>
         </div>
       </header>
@@ -259,12 +259,12 @@ Instructions:
         </div>
       </div>
 
-      <div className="sticky bottom-0 p-4 bg-background border-t mt-auto">
+      <div className="sticky bottom-0 p-4 border-t mt-auto">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
           <div
             ref={inputContainerRef}
             className={cn(
-              "relative w-full rounded-3xl border bg-background p-2 cursor-text",
+              "relative w-full rounded-3xl border p-2 cursor-text",
               isLoading && "opacity-80",
             )}
             onClick={handleInputContainerClick}

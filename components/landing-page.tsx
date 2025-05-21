@@ -45,22 +45,10 @@ export function LandingPage({ onLogin }: LandingPageProps) {
         <Button size="lg" onClick={handleLogin} disabled={isLoading} className="text-lg px-8 py-6 rounded-lg">
           {isLoading ? "Logging in..." : "Get Started"}
         </Button>
-        <div className="mt-16 relative">
-          <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10 h-20 bottom-0"></div>
-          <div className="bg-gray-800 rounded-lg overflow-hidden shadow-2xl">
-            <Image
-              src="/placeholder.svg?height=600&width=1200"
-              alt="PerkPal Dashboard Preview"
-              width={1200}
-              height={600}
-              className="w-full object-cover"
-            />
-          </div>
-        </div>
       </section>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-20">
+      <section className="container mx-auto px-4 py-10">
         <h2 className="text-3xl md:text-4xl font-bold mb-16 text-center">Everything You Need to Maximize Value</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           <FeatureCard
@@ -85,7 +73,7 @@ export function LandingPage({ onLogin }: LandingPageProps) {
           />
           <FeatureCard
             icon={<Bot className="h-10 w-10" />}
-            title="AI Assistant"
+            title="Assistant"
             description="Get personalized recommendations and answers to your credit card questions from our AI assistant."
           />
           <FeatureCard
@@ -144,69 +132,6 @@ export function LandingPage({ onLogin }: LandingPageProps) {
           </div>
         </div>
       </section>
-
-      {/* Security Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="flex flex-col md:flex-row items-center gap-12">
-          <div className="md:w-1/2">
-            <Shield className="h-16 w-16 text-green-400 mb-6" />
-            <h2 className="text-3xl font-bold mb-6">Your Security is Our Priority</h2>
-            <p className="text-xl text-gray-300 mb-6">
-              PerkPal uses bank-level encryption to protect your data. We never store your full card numbers or
-              sensitive information.
-            </p>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3">
-                <div className="bg-green-500 rounded-full p-1 mt-1">
-                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span>End-to-end encryption</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="bg-green-500 rounded-full p-1 mt-1">
-                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span>No full card numbers stored</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="bg-green-500 rounded-full p-1 mt-1">
-                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <span>Regular security audits</span>
-              </li>
-            </ul>
-          </div>
-          <div className="md:w-1/2 bg-gray-800 rounded-lg p-8">
-            <div className="aspect-video bg-gray-700 rounded-lg flex items-center justify-center">
-              <Image
-                src="/placeholder.svg?height=300&width=500"
-                alt="Security Visualization"
-                width={500}
-                height={300}
-                className="rounded-lg"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h2 className="text-4xl font-bold mb-6">Ready to Maximize Your Rewards?</h2>
-        <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-          Join thousands of users who are getting more value from their credit cards with PerkPal.
-        </p>
-        <Button size="lg" onClick={handleLogin} disabled={isLoading} className="text-lg px-8 py-6 rounded-lg">
-          {isLoading ? "Logging in..." : "Get Started for Free"}
-        </Button>
-      </section>
-
       {/* Footer */}
       <footer className="bg-gray-900 py-12">
         <div className="container mx-auto px-4">
@@ -235,7 +160,6 @@ export function LandingPage({ onLogin }: LandingPageProps) {
           </div>
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-500">
             <p>© {new Date().getFullYear()} PerkPal. All rights reserved.</p>
-            <p className="mt-2 text-sm">Powered by Perplexity AI</p>
           </div>
         </div>
       </footer>
