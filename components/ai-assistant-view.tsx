@@ -9,9 +9,7 @@ import { cn } from "@/lib/utils"
 import { useChat } from "@ai-sdk/react"
 import { useUserCards } from "@/hooks/use-user-cards"
 import ReactMarkdown from "react-markdown"
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { nord } from 'react-syntax-highlighter/dist/cjs/styles/prism'
-import type { Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm';
 import { useUser } from "@clerk/nextjs"
 
 type MessageType = "user" | "system"
@@ -277,7 +275,9 @@ Instructions:
                     <span>{message.content}</span>
                   ) : (
                     <div className="prose prose-sm dark:prose-invert max-w-none text-white prose-headings:text-white prose-strong:text-white prose-a:text-blue-400">
-                      <ReactMarkdown>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                      >
                         {message.content}
                       </ReactMarkdown>
                     </div>
