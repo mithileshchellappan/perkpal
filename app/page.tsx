@@ -168,9 +168,9 @@ export default function Page() {
             <UserProfile />
           </div>
         </aside>
-        <main className="p-6 overflow-auto h-screen">
+        <main className="overflow-auto h-screen">
           {activeView === "dashboard" && (
-            <>
+            <div className="p-6">
               <div className="mb-6 flex items-center justify-between">
                 <div className="space-y-1">
                   <h1 className="text-2xl font-bold">Credit Card Points Dashboard</h1>
@@ -231,7 +231,7 @@ export default function Page() {
                 </div>
                 <CreditCardTable cards={cards} onEdit={handleEditCard} onDelete={handleDeleteCard} />
               </div>
-            </>
+            </div>
           )}
 
           {activeView === "cards" && (

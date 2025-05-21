@@ -51,14 +51,10 @@ async function queryPerplexity<T>(
       providerOptions: {
         perplexity: {
           thinking: {type: "enabled"},
-          search_after_date_filter: "1/1/2025",
-          web_search_options: {
-            country: "India"
-          }
+          search_after_date_filter: "1/1/2025"
         }
       }
     });
-    
     return object as T;
   } catch (error) {
     console.error('Error querying Perplexity API with AI SDK (generateObject):', error);
