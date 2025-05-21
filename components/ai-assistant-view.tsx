@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown"
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { nord } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import type { Components } from 'react-markdown'
+import { useUser } from "@clerk/nextjs"
 
 type MessageType = "user" | "system"
 
@@ -50,7 +51,7 @@ User context:
 - The user has the following cards: ${cards.map(card =>
         `${card.issuer} ${card.name} (Points Balance: ${card.pointsBalance}, Status: ${card.status}, Rewards Rate: ${card.rewardsRate ?? 0}%)`
       ).join("\n")}.
-- The user is located in ${cards[0]?.country ?? "US"}.
+- The user is located in ${cards[0]?.country ?? "India"}.
 - The current date is ${new Date().toLocaleString()}.
 
 Instructions:
@@ -60,6 +61,7 @@ Instructions:
 - If the user asks for information, provide a concise and direct answer.
 - Your answer should be relevant to the user's cards and location.
 - Keep your answers short and concise.
+- Ensure your answers are always related to the user's card and location.
     `
     },
     onFinish(message, options) {
@@ -146,6 +148,15 @@ Instructions:
     }
   }
 
+  // Sample questions related to credit cards and rewards
+  const sampleQuestions = [
+    "Which card should I use to book flights?",
+    "Which card should I use to pay my taxes?",
+    "How can I maximize my points this month?",
+    "What's the best way to redeem my points?",
+    "Are there any bonus categories active right now?"
+  ]
+
   // Use our local input state combined with AI hook
   const handleLocalInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value
@@ -213,6 +224,24 @@ Instructions:
     }
   }
 
+  const handleSampleQuestionClick = (question: string) => {
+    setInputValue(question)
+    setHasTyped(true)
+    
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto"
+      const newHeight = Math.max(24, Math.min(textareaRef.current.scrollHeight, 80))
+      textareaRef.current.style.height = `${newHeight}px`
+      
+      // Focus the textarea
+      if (!isMobile) {
+        textareaRef.current.focus()
+      }
+    }
+  }
+
+  const {user} = useUser()
+
   return (
     <div ref={mainContainerRef} className="flex pt-4 flex-col h-full w-full">
       <header className="sticky top-0 h-12 flex items-center px-4 z-20 border-b">
@@ -229,34 +258,51 @@ Instructions:
         className="flex-grow overflow-y-auto px-4 py-4"
         style={{ height: "calc(100% - 12rem)" }}
       >
-        <div className="max-w-3xl mx-auto space-y-4">
-          {aiMessages.map((message) => (
-            <div
-              key={message.id}
-              className={cn("flex flex-col", message.role === "user" ? "items-end" : "items-start")}
-            >
+        {aiMessages.length > 0 ? (
+          <div className="max-w-3xl mx-auto space-y-4">
+            {aiMessages.map((message) => (
               <div
-                className={cn(
-                  "max-w-[80%] px-4 py-2 rounded-2xl",
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-none"
-                    : "text-foreground rounded-bl-none",
-                )}
+                key={message.id}
+                className={cn("flex flex-col", message.role === "user" ? "items-end" : "items-start")}
               >
-                {message.role === "user" ? (
-                  <span>{message.content}</span>
-                ) : (
-                  <div className="prose prose-sm dark:prose-invert max-w-none text-white prose-headings:text-white prose-strong:text-white prose-a:text-blue-400">
-                    <ReactMarkdown>
-                      {message.content}
-                    </ReactMarkdown>
-                  </div>
-                )}
+                <div
+                  className={cn(
+                    "max-w-[80%] px-4 py-2 rounded-2xl",
+                    message.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-none"
+                      : "text-foreground rounded-bl-none",
+                  )}
+                >
+                  {message.role === "user" ? (
+                    <span>{message.content}</span>
+                  ) : (
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-white prose-headings:text-white prose-strong:text-white prose-a:text-blue-400">
+                      <ReactMarkdown>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                </div>
               </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto -mt-16">
+            <h2 className="text-3xl font-semibold mb-6">How can I help you, {user?.firstName}? </h2>
+            <div className="flex flex-col space-y-4 w-full">
+              {sampleQuestions.map((question, index) => (
+                <button 
+                  key={index}
+                  onClick={() => handleSampleQuestionClick(question)}
+                  className="w-full rounded-md py-2 text-sm text-left text-secondary-foreground hover:bg-secondary/50 sm:px-3"
+                >
+                  {question}
+                </button>
+              ))}
             </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="sticky bottom-0 p-4 border-t mt-auto">
@@ -269,7 +315,7 @@ Instructions:
             )}
             onClick={handleInputContainerClick}
           >
-            <div className="pb-6">
+            <div className="pt-3 pb-6">
               <Textarea
                 ref={textareaRef}
                 placeholder={isLoading ? "Waiting for response..." : "Ask anything about your cards and points..."}
