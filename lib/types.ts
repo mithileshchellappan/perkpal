@@ -35,6 +35,7 @@ export interface CreditCardType {
   number?: string
   baseValue: number
   annualFee?: number
+  cashValue?: number
   expiryDate?: string
   rewardsRate?: number
   status: "Active" | "Inactive"

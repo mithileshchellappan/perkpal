@@ -3,10 +3,13 @@ import { auth } from '@clerk/nextjs/server'; // Import auth from Clerk
 import {
   getUserCards,
   addUserCard,
+  getCachedCardAnalysis,
+  setCachedCardAnalysis,
   // getCardById, // We might need this later for specific card operations
   // updateUserCard, 
   // deleteUserCard 
 } from '@/lib/db'; // Updated to use db.ts directly
+import { getCardAnalysis } from '@/lib/services/perplexityService';
 
 /**
  * GET user cards
@@ -59,6 +62,13 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    let analysis = await getCachedCardAnalysis(cardName, bank, country);
+    if(!analysis) {
+      analysis = await getCardAnalysis(cardName, bank, country);
+      if(analysis) {
+        await setCachedCardAnalysis(cardName, bank, country, analysis);
+      }
+    }
 
     const newCardData = {
       bin,
@@ -67,11 +77,10 @@ export async function POST(request: Request) {
       network,
       country,
       pointsBalance: pointsBalance ? Number(pointsBalance) : undefined,
-      cardAnalysisData: null, // Analysis will be fetched and stored separately
     };
 
     const addedCard = await addUserCard(userId, newCardData);
-    return NextResponse.json({ success: true, data: addedCard }, { status: 201 });
+    return NextResponse.json({ success: true, data: {...addedCard, cardAnalysisData: analysis } }, { status: 201 });
 
   } catch (error) {
     console.error('Error adding user card:', error);

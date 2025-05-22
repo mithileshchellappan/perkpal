@@ -39,7 +39,6 @@ export function EcommerceRewardsView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [ecommerceRewardsData, setEcommerceRewardsData] = useState<EcommerceRewardsData | null>(null)
-  const { userId } = useAuth()
   const { cards, isLoading: isLoadingCards, error: cardsError } = useUserCards()
 
   useEffect(() => {
@@ -68,9 +67,10 @@ export function EcommerceRewardsView() {
           },
           body: JSON.stringify(requestData),
         })
-
+        console.log(response)
         if (!response.ok) {
           const errorData = await response.json()
+          console.log(errorData)
           throw new Error(errorData.message || 'Failed to fetch recommendations')
         }
 
@@ -99,7 +99,7 @@ export function EcommerceRewardsView() {
   }
 
   // If there was an error
-  if (error || cardsError || !ecommerceRewardsData) {
+  if (!ecommerceRewardsData) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -216,7 +216,7 @@ export function EcommerceRewardsView() {
                     <div key={`${card.issuingBank}-${card.cardName}`} className="space-y-2">
                       <div className="flex justify-between items-center">
                         <Badge variant="outline" className="bg-primary/10">
-                          {card.issuingBank} {card.cardName}
+                          {card.cardName}
                         </Badge>
                         {card.source && (
                           <a

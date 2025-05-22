@@ -62,9 +62,21 @@ export function CreditCardTable({ cards, onEdit, onDelete }: CreditCardTableProp
                 </div>
               </TableCell>
               <TableCell>{card.pointsBalance.toLocaleString()}</TableCell>
-              <TableCell>{card.baseValue.toLocaleString()} {card.currency}</TableCell>
-              <TableCell>{card.baseValue.toLocaleString()} {card.currency}</TableCell>
-              <TableCell>{card.annualFee} {card.currency}</TableCell>
+              <TableCell>{card.baseValue.toLocaleString(undefined, {
+                style: "currency",
+                currency: card.currency || "USD",
+                maximumFractionDigits: 3,
+              })}</TableCell>
+              <TableCell>{card.cashValue ? card.cashValue.toLocaleString(undefined, {
+                style: "currency",
+                currency: card.currency || "USD",
+                maximumFractionDigits: 0,
+              }) : 0}</TableCell>
+                <TableCell>{card.annualFee ? card.annualFee?.toLocaleString(undefined, {
+                  style: "currency",
+                  currency: card.currency || "USD",
+                  maximumFractionDigits: 0,
+                }) : 0}</TableCell>
               <TableCell>{card.rewardsRate}x</TableCell>
               <TableCell>
                 <span

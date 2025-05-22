@@ -337,7 +337,6 @@ export interface UserCard {
   network: string;
   country: string;
   pointsBalance?: number;
-  last4Digits?: string;
   cardAnalysisData?: ComprehensiveCardAnalysisResponse | null;
   addedDate: string;
 }
@@ -400,8 +399,8 @@ export async function getUserCards(userId: string): Promise<(UserCard & { approx
       bank: camelCard.bank,
       network: camelCard.network,
       country: camelCard.country,
+      baseValue: camelCard.baseValue,
       pointsBalance: camelCard.pointsBalance,
-      last4Digits: camelCard.last4Digits,
       cardAnalysisData: camelCard.cardAnalysisData 
         ? JSON.parse(camelCard.cardAnalysisData)
         : null,
@@ -534,11 +533,6 @@ export async function addUserCard(userId: string, cardData: Omit<UserCard, 'id' 
   
   // Convert to snake_case for Supabase
   const snakeCard = toSnakeCase(newCard);
-
-  // Special handling for cardAnalysisData
-  if (newCard.cardAnalysisData) {
-    snakeCard.card_analysis_data = JSON.stringify(newCard.cardAnalysisData);
-  }
 
   const { error } = await supabase
     .from('user_cards')

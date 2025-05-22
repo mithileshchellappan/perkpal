@@ -86,8 +86,9 @@ export function useUserCards() {
           name: dbCard.cardName,
           issuer: dbCard.bank,
           pointsBalance: dbCard.pointsBalance || 0,
-          number: dbCard.last4Digits ? `XXXX-XXXX-XXXX-${dbCard.last4Digits}` : dbCard.bin, // Fallback to bin if last4Digits not present
-          baseValue: dbCard.approxPointsValue || 0,
+          number:  dbCard.bin,
+          baseValue: dbCard.cardAnalysisData?.base_value || 0,
+          cashValue: (dbCard.cardAnalysisData?.base_value || 0) * (dbCard.pointsBalance || 1) ,
           annualFee: analysis?.annual_fee || 0,
           rewardsRate: rewardsRate,
           status: "Active", // Default status

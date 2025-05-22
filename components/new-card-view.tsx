@@ -102,7 +102,7 @@ export function NewCardView() {
   }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-6 h-full">
       <div className="flex items-center mb-6">
         <Search className="mr-2 h-6 w-6" />
         <h1 className="text-2xl font-bold">Find Your Next Card</h1>
@@ -123,10 +123,10 @@ export function NewCardView() {
                 <Input 
                   id="current-cards" 
                   value={cards.length > 0 
-                    ? cards.map(card => `${card.name} (${card.issuer})`).join(', ') 
+                    ? cards.map(card => `${card.name.replaceAll(card.issuer, '').replaceAll('Credit Card', '')}`).join(', ') 
                     : 'No cards added yet'
                   } 
-                  disabled 
+                   disabled={cards.length !== 0}
                 />
               )}
             </div>
@@ -256,7 +256,7 @@ export function NewCardView() {
           )}
 
           {showRecommendations && !isLoading && recommendations && (
-            <ScrollArea className="h-[calc(100vh-200px)]">
+            <ScrollArea className="h-full">
               <div className="pr-4">
                 {recommendations.evaluation_of_current_cards && (
                   <Card className="mb-6">

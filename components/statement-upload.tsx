@@ -278,7 +278,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                       <p className="text-2xl font-bold">
                         {totalSpend.toLocaleString(undefined, {
                           style: "currency",
-                          currency: analysisResults.categories[0]?.currency || "INR",
+                          currency: analysisResults.categories[0]?.currency || "USD",
                           maximumFractionDigits: 0,
                         })}
                       </p>
@@ -298,7 +298,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
 
                   <Card className="bg-muted/50">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Avg. Points/₹</CardTitle>
+                      <CardTitle className="text-base">Avg. Points / {analysisResults.categories[0]?.currency}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className="text-2xl font-bold">

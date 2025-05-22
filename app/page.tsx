@@ -47,7 +47,7 @@ export default function Page() {
 
   // Calculate totals
   const totalPoints = cards.reduce((sum, card) => sum + (card.pointsBalance || 0), 0)
-  const totalCashValue = cards.reduce((sum, card) => sum + (card.baseValue || 0), 0)
+  const totalCashValue = cards.reduce((sum, card) => sum + (card.cashValue || 0), 0)
   const totalAnnualFees = cards.reduce((sum, card) => sum + (card.annualFee || 0), 0)
   const baseValueCurrency = cards[0]?.currency || "USD"
 
@@ -237,12 +237,20 @@ export default function Page() {
                 />
                 <MetricsCard
                   title="Cash Value"
-                  value={`${totalCashValue.toLocaleString()} ${baseValueCurrency}`}
+                  value={`${totalCashValue.toLocaleString(undefined, {
+                    style: "currency",
+                    currency: baseValueCurrency,
+                    maximumFractionDigits: 0,
+                  })}`}
                   icon={<Tag className="h-4 w-4 text-primary" />}
                 />
                 <MetricsCard
                   title="Annual Fees"
-                  value={`${totalAnnualFees.toLocaleString()} ${baseValueCurrency}`}
+                  value={`${totalAnnualFees.toLocaleString(undefined, {
+                    style: "currency",
+                    currency: baseValueCurrency,
+                    maximumFractionDigits: 0,
+                  })}`}
                   icon={<CreditCard className="h-4 w-4 text-primary" />}
                 />
               </div>

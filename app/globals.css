@@ -16,15 +16,13 @@ body {
 
 /* Style the track (the area the scrollbar moves along) */
 ::-webkit-scrollbar-track {
-  background: #f1f1f1; /* Light theme track color */
-  border-radius: 10px;
+  background: #2c2c2c; /
 }
 
 /* Style the thumb (the draggable part of the scrollbar) */
 ::-webkit-scrollbar-thumb {
-  background: #888; /* Light theme thumb color */
-  border-radius: 10px;
-  border: 3px solid #f1f1f1; /* Create space around the thumb */
+  background: #6b6b6b; /* Dark theme thumb color - adjusted for better contrast */
+  border-color: #2c2c2c; /* Create space around the thumb */
 }
 
 /* Add hover effect to the thumb */
