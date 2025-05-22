@@ -5,6 +5,7 @@ import {
   EcommerceCardAdvisorResponse
 } from '@/types/cards';
 import { getEcommerceCardSuggestions } from '@/lib/services/perplexityService';
+import { getCachedEcommerceRewards, setCachedEcommerceRewards } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,9 +23,27 @@ export async function POST(request: NextRequest) {
     }
 
     const validatedData: EcommerceCardAdvisorRequestData = validationResult.data;
+    
+    // Check if we have cached data for this country and cards combination
+    const cachedData = await getCachedEcommerceRewards(
+      validatedData.country,
+      validatedData.cards
+    );
 
-    // Call the Perplexity service
+    if (cachedData) {
+      console.log('Using cached ecommerce rewards data');
+      return NextResponse.json(cachedData);
+    }
+
+    console.log('Fetching ecommerce rewards data from Perplexity');
     const suggestionsResponse: EcommerceCardAdvisorResponse = await getEcommerceCardSuggestions(validatedData);
+    
+    // Cache the response for future use with 1-week TTL
+    await setCachedEcommerceRewards(
+      validatedData.country,
+      validatedData.cards,
+      suggestionsResponse
+    );
 
     return NextResponse.json(suggestionsResponse);
 
@@ -33,11 +52,6 @@ export async function POST(request: NextRequest) {
     let errorMessage = 'An unexpected error occurred.';
     if (error.message) {
       errorMessage = error.message;
-    }
-    
-    // Check if the error is from Perplexity or schema validation specifically
-    if (error.message && (error.message.includes('Perplexity API') || error.message.includes('validate schema'))) {
-        return NextResponse.json({ message: `Error processing request: ${errorMessage}` }, { status: 502 }); // Bad Gateway for upstream errors
     }
 
     return NextResponse.json({ message: `Server error: ${errorMessage}` }, { status: 500 });

@@ -97,9 +97,9 @@ export function useUserCards() {
           network: dbCard.network,
           country: dbCard.country,
           currency: dbCard.currency,
-          cardAnalysisData: analysis,
+          cardAnalysisData: analysis as ComprehensiveCardAnalysisResponse | undefined,
         };
-      });
+      }) as unknown as CreditCardType[];
       setCards(transformedCards);
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to fetch cards"));
@@ -175,5 +175,34 @@ export function useUserCards() {
     }
   };
 
-  return { cards, isLoading, error, refetch: fetchCards, addCard, isAddingCard, addCardError };
+  // Update the delete card function to directly modify the state
+  const deleteCard = async (cardId: string): Promise<boolean> => {
+    if (!isSignedIn) {
+      setError(new Error("User is not signed in. Cannot delete card."));
+      return false;
+    }
+
+    try {
+      const response = await fetch(`/api/user-cards?id=${cardId}`, {
+        method: 'DELETE',
+      });
+
+      const result: ApiMutationResponse = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to delete card via API');
+      }
+
+      // Directly update the cards array by filtering out the deleted card
+      setCards(prevCards => prevCards.filter(card => card.id !== cardId));
+      return true;
+    } catch (err) {
+      const deleteError = err instanceof Error ? err : new Error("Failed to delete card");
+      setError(deleteError);
+      console.error("Error deleting user card via hook:", err);
+      return false;
+    }
+  };
+
+  return { cards, isLoading, error, refetch: fetchCards, addCard, isAddingCard, addCardError, deleteCard };
 }

@@ -47,6 +47,9 @@ export function EcommerceRewardsView() {
         // Wait until cards are loaded
         if (isLoadingCards || !cards || cards.length === 0) return
 
+        // Prevent duplicate API calls when the component re-renders
+        if (loading === false && ecommerceRewardsData !== null) return
+
         setLoading(true)
         setError(null)
 

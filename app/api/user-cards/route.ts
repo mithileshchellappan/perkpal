@@ -5,9 +5,9 @@ import {
   addUserCard,
   getCachedCardAnalysis,
   setCachedCardAnalysis,
+  deleteUserCard, // Import deleteUserCard function
   // getCardById, // We might need this later for specific card operations
   // updateUserCard, 
-  // deleteUserCard 
 } from '@/lib/db'; // Updated to use db.ts directly
 import { getCardAnalysis } from '@/lib/services/perplexityService';
 
@@ -88,5 +88,32 @@ export async function POST(request: Request) {
       { error: 'Failed to add user card' }, 
       { status: 500 }
     );
+  }
+}
+
+// Add a DELETE handler to delete a card by ID
+export async function DELETE(req: Request) {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
+    }
+
+    // Extract the card ID from the URL
+    const url = new URL(req.url);
+    const cardId = url.searchParams.get("id");
+
+    if (!cardId) {
+      return NextResponse.json({ success: false, error: "Card ID is required" }, { status: 400 });
+    }
+
+    // Delete the card from the database using the imported function
+    const result = await deleteUserCard(userId, cardId);
+
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
+    console.error("Error deleting card:", error);
+    return NextResponse.json({ success: false, error: "Failed to delete card" }, { status: 500 });
   }
 }

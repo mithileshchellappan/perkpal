@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/hooks/use-toast"
 import type { CreditCardType } from "@/lib/types"
 import { Plus } from "lucide-react"
+import { useUserCards } from "@/hooks/use-user-cards"
 
 interface MyCardsViewProps {
   cards: CreditCardType[]
@@ -18,48 +19,54 @@ interface MyCardsViewProps {
   onRemoveCard?: (cardId: string) => void
 }
 
-export function MyCardsView({ cards, onAddCard, onRemoveCard }: MyCardsViewProps) {
+export function MyCardsView({ onAddCard, onRemoveCard }: Omit<MyCardsViewProps, 'cards'>) {
   const [selectedCard, setSelectedCard] = useState<CreditCardType | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<"overview" | "statements">("overview")
-  const [localCards, setLocalCards] = useState<CreditCardType[]>(cards)
+  
+  const { cards, isLoading: isLoadingCards, deleteCard } = useUserCards()
 
   const handleSelectCard = (card: CreditCardType) => {
-    setIsLoading(true)
-    // Simulate loading data
-    setTimeout(() => {
-      setSelectedCard(card)
-      setIsLoading(false)
-    }, 1000)
+    setSelectedCard(card)
   }
 
   const handleCloseDetails = () => {
     setSelectedCard(null)
   }
 
-  const handleRemoveCard = (cardId: string) => {
-    setIsLoading(true)
+  const handleRemoveCard = async (cardId: string) => {
+    try {
+      const success = await deleteCard(cardId);
+      
+      if (success) {
+        if (onRemoveCard) {
+          onRemoveCard(cardId)
+        }
 
-    // Remove card from local state
-    const updatedCards = localCards.filter((card) => card.id !== cardId)
-    setLocalCards(updatedCards)
-
-    // Call the parent handler if provided
-    if (onRemoveCard) {
-      onRemoveCard(cardId)
+        toast({
+          title: "Card removed",
+          description: "The credit card has been successfully removed.",
+          duration: 3000,
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to remove the credit card. Please try again.",
+          variant: "destructive",
+          duration: 3000,
+        })
+      }
+    } catch (error) {
+      console.error("Error removing card:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove the credit card. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      })
     }
-
-    // Show success toast
-    toast({
-      title: "Card removed",
-      description: "The credit card has been successfully removed.",
-      duration: 3000,
-    })
-
-    setIsLoading(false)
   }
 
-  if (isLoading) {
+  if (isLoadingCards) {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -113,7 +120,7 @@ export function MyCardsView({ cards, onAddCard, onRemoveCard }: MyCardsViewProps
     )
   }
 
-  const displayCards = onRemoveCard ? localCards : cards
+  const displayCards = cards
 
   return (
     <div className="space-y-4">
@@ -187,7 +194,7 @@ export function MyCardsView({ cards, onAddCard, onRemoveCard }: MyCardsViewProps
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
-                          {displayCards.reduce((sum, card) => sum + card.annualFee, 0).toLocaleString()} {displayCards[0]?.currency}
+                          {displayCards.reduce((sum, card) => sum + (card.annualFee || 0), 0).toLocaleString()} {displayCards[0]?.currency}
                         </p>
                         <p className="text-sm text-muted-foreground">Total annual cost</p>
                       </CardContent>

@@ -884,4 +884,89 @@ export async function storeStatementAnalysis(
     console.error('Error storing statement analysis:', error);
     throw new Error(`Failed to store statement analysis: ${error instanceof Error ? error.message : String(error)}`);
   }
+}
+
+// --- Ecommerce Rewards Cache Functions ---
+
+export async function getCachedEcommerceRewards(
+  country: string,
+  cardIdentifiers: Array<{ cardName: string; issuingBank: string }>
+): Promise<any | null> {
+  try {
+    const db = assertSupabaseClient();
+    
+    // Create a sorted key of card identifiers for consistent cache lookups
+    const cardsKey = JSON.stringify(
+      cardIdentifiers
+        .map(card => `${card.cardName}:${card.issuingBank}`)
+        .sort()
+    );
+    
+    const { data, error } = await db
+      .from('ecommerce_rewards')
+      .select('*')
+      .eq('country', country)
+      .eq('cards_key', cardsKey)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+    
+    // Check if the data is expired
+    if (data.expires_at && new Date(data.expires_at as string) < new Date()) {
+      console.log(`Cached ecommerce rewards data for ${country} has expired`);
+      return null;
+    }
+
+    try {
+      return JSON.parse(data.rewards_data as string);
+    } catch (e) {
+      console.error('Error parsing ecommerce rewards data:', e);
+      return null;
+    }
+  } catch (e) {
+    console.error('Error retrieving cached ecommerce rewards:', e);
+    return null;
+  }
+}
+
+export async function setCachedEcommerceRewards(
+  country: string,
+  cardIdentifiers: Array<{ cardName: string; issuingBank: string }>,
+  rewardsData: any
+): Promise<void> {
+  try {
+    const db = assertSupabaseClient();
+    
+    // Create a sorted key of card identifiers for consistent cache lookups
+    const cardsKey = JSON.stringify(
+      cardIdentifiers
+        .map(card => `${card.cardName}:${card.issuingBank}`)
+        .sort()
+    );
+    
+    // Calculate expiration date (1 week from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 1 week TTL
+    
+    const { error } = await db
+      .from('ecommerce_rewards')
+      .upsert(
+        {
+          country: country,
+          cards_key: cardsKey,
+          rewards_data: JSON.stringify(rewardsData),
+          timestamp: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(), // Add expiration date
+        },
+        { onConflict: 'country,cards_key' }
+      );
+
+    if (error) {
+      console.error('Error setting cached ecommerce rewards:', error);
+    }
+  } catch (e) {
+    console.error('Error caching ecommerce rewards:', e);
+  }
 } 
