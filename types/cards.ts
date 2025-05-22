@@ -238,4 +238,17 @@ export const CardPartnerProgramsResponseSchema = z.object({
   domestic_lounges_available: z.number().nullable(),
   international_lounges_available: z.number().nullable(),
 });
-export type CardPartnerProgramsResponse = z.infer<typeof CardPartnerProgramsResponseSchema>; 
+export type CardPartnerProgramsResponse = z.infer<typeof CardPartnerProgramsResponseSchema>;
+
+// Card Offer Schema
+export const CardOfferSchema = z.object({
+  type: z.enum(['new_offer', 'transfer_bonus', 'merchant_offer', 'seasonal_promotion']),
+  title: z.string(),
+  description: z.string(),
+  start_date: z.string(),
+  end_date: z.string().nullable(),
+});
+export type CardOffer = z.infer<typeof CardOfferSchema>;
+
+export const CardOffersResponseSchema = z.array(CardOfferSchema);
+export type CardOffersResponse = z.infer<typeof CardOffersResponseSchema>; 

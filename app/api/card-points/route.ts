@@ -38,7 +38,7 @@ export async function GET(request: Request) {
         { status: 400 }
       );
     }
-    
+    if(!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const pointsHistory = await getCardPointsHistory(userId, {
       cardId,
       startYear,

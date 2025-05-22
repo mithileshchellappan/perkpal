@@ -32,6 +32,8 @@ import {
  * @param schema The Zod schema for the expected JSON response
  * @returns The parsed JSON object matching the schema
  */
+import { CardOffersResponse, CardOffersResponseSchema } from '@/types/cards';
+
 async function queryPerplexity<T>(
   prompt: string,
   systemPrompt: string,
@@ -372,4 +374,40 @@ export async function getCardPartnerPrograms(
     systemPrompt,
     CardPartnerProgramsResponseSchema
   );
+}
+
+/**
+ * Get latest offers and promotions for a specific card
+ * @param cardName The name of the card to check for offers
+ * @param issuingBank The issuing bank of the card
+ * @param country The country where the card is issued
+ * @returns Array of latest offers and promotions for the card
+ */
+export async function getCardLatestOffers(
+  cardName: string, 
+  issuingBank: string,
+  country: string
+): Promise<CardOffersResponse> {
+  const systemPrompt = 'You are an AI assistant that provides accurate and concise information about credit card offers and promotions. You always respond in the requested JSON format without any additional explanatory text or markdown formatting outside of the JSON structure itself.';
+  const userPrompt = `
+    Generate a JSON summary of current offers and promotions for the ${issuingBank} ${cardName} credit card in ${country}.
+    Focus specifically on:
+    1. New offers available in the last 7 days
+    2. Current transfer partner bonuses
+    3. Merchant-specific offers
+    4. Seasonal promotions
+
+    Only include significant, confirmed offers from official sources. Return an empty array if no relevant offers exist.
+  `;
+
+  try {
+    return await queryPerplexity<CardOffersResponse>(
+      userPrompt,
+      systemPrompt,
+      CardOffersResponseSchema
+    );
+  } catch (error) {
+    console.error('Error querying Perplexity API for card offers:', error);
+    return [];
+  }
 } 

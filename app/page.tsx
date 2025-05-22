@@ -23,6 +23,7 @@ import { CreditCard, Gift, Globe, BarChart, Tag, Bot, Search } from "lucide-reac
 import { useAuth } from "@clerk/nextjs"
 import { useUserCards } from "@/hooks/use-user-cards"
 import { cn } from "@/lib/utils"
+import { NotificationPanel } from "@/components/notification-panel"
 
 export default function Page() {
   const { isLoaded, isSignedIn } = useAuth()
@@ -222,6 +223,9 @@ export default function Page() {
         <main className="overflow-auto h-screen">
           {activeView === "dashboard" && (
             <div className="p-6">
+               <div className="absolute top-4 right-6 z-10">
+                <NotificationPanel />
+              </div>
               <div className="mb-6 flex items-center justify-between">
                 <div className="space-y-1">
                   <h1 className="text-2xl font-bold">Credit Card Points Dashboard</h1>

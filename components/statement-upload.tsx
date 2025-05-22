@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowUpCircle, FileText, BarChart, Loader2, Calendar } from "lucide-react"
+import { ArrowUpCircle, FileText, BarChart, Loader2, Calendar, Mail, Sparkles, Construction, AlertCircle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import type { CreditCardType } from "@/lib/types"
 import { toast } from "sonner"
@@ -33,6 +34,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
   const [analysisResults, setAnalysisResults] = useState<CardStatementAnalysisResponse | null>(null)
   const [statementMonth, setStatementMonth] = useState<string>(new Date().getMonth().toString())
   const [statementYear, setStatementYear] = useState<string>(new Date().getFullYear().toString())
+  const [uploadMethod, setUploadMethod] = useState<"manual" | "gmail">("manual")
 
   const months = [
     { value: "1", label: "January" },
@@ -471,126 +473,210 @@ export function StatementUpload({ cards }: StatementUploadProps) {
   // Default upload screen
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Statement</CardTitle>
-          <CardDescription>Analyze your credit card statement to see rewards breakdown</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid w-full max-w-sm items-center gap-1.5">
-              <Label htmlFor="card-select">Select Card</Label>
-              <Select value={selectedCard} onValueChange={handleCardSelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a card" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cards.map((card) => (
-                    <SelectItem key={card.id} value={card.id}>
-                      {card.issuer} {card.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <Tabs defaultValue="manual" onValueChange={(value) => setUploadMethod(value as "manual" | "gmail")}>
+        <TabsList className="w-full mb-4">
+          <TabsTrigger value="manual" className="flex-1">
+            Manual Upload
+          </TabsTrigger>
+          <TabsTrigger value="gmail" className="flex-1">
+            Gmail Sync
+            <Badge variant="outline" className="ml-2 bg-yellow-500/10 text-yellow-600 border-yellow-200/20 text-xs">
+              Coming Soon
+            </Badge>
+          </TabsTrigger>
+        </TabsList>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="statement-month">Statement Month</Label>
-                <Select value={statementMonth} onValueChange={setStatementMonth}>
-                  <SelectTrigger id="statement-month">
-                    <SelectValue placeholder="Select month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month) => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="statement-year">Statement Year</Label>
-                <Select value={statementYear} onValueChange={setStatementYear}>
-                  <SelectTrigger id="statement-year">
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map((year) => (
-                      <SelectItem key={year.value} value={year.value}>
-                        {year.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {isUploading ? (
+        <TabsContent value="manual">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload Statement</CardTitle>
+              <CardDescription>Analyze your credit card statement to see rewards breakdown</CardDescription>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <span>{fileUploaded?.name}</span>
+                <div className="grid w-full max-w-sm items-center gap-1.5">
+                  <Label htmlFor="card-select">Select Card</Label>
+                  <Select value={selectedCard} onValueChange={handleCardSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a card" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cards.map((card) => (
+                        <SelectItem key={card.id} value={card.id}>
+                          {card.issuer} {card.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="statement-month">Statement Month</Label>
+                    <Select value={statementMonth} onValueChange={setStatementMonth}>
+                      <SelectTrigger id="statement-month">
+                        <SelectValue placeholder="Select month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month) => (
+                          <SelectItem key={month.value} value={month.value}>
+                            {month.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Button variant="outline" size="sm" onClick={resetUpload} disabled={uploadProgress >= 100}>
-                    Cancel
-                  </Button>
+                  <div>
+                    <Label htmlFor="statement-year">Statement Year</Label>
+                    <Select value={statementYear} onValueChange={setStatementYear}>
+                      <SelectTrigger id="statement-year">
+                        <SelectValue placeholder="Select year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year.value} value={year.value}>
+                            {year.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Progress value={uploadProgress} className="h-2" />
-                  <p className="text-xs text-muted-foreground text-right">{uploadProgress}% uploaded</p>
-                </div>
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  "border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors",
-                  isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/20",
-                  !selectedCard && "opacity-50 pointer-events-none",
+
+                {isUploading ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        <span>{fileUploaded?.name}</span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={resetUpload} disabled={uploadProgress >= 100}>
+                        Cancel
+                      </Button>
+                    </div>
+                    <div className="space-y-1">
+                      <Progress value={uploadProgress} className="h-2" />
+                      <p className="text-xs text-muted-foreground text-right">{uploadProgress}% uploaded</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-colors",
+                      isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/20",
+                      !selectedCard && "opacity-50 pointer-events-none",
+                    )}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    onClick={() => {
+                      if (selectedCard) {
+                        document.getElementById("statement-upload")?.click()
+                      }
+                    }}
+                  >
+                    <input
+                      id="statement-upload"
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={handleFileInputChange}
+                      disabled={!selectedCard}
+                    />
+                    <ArrowUpCircle className="h-10 w-10 text-muted-foreground/60 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-1">Upload Statement PDF</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Drag and drop or click to browse</p>
+                    <p className="text-xs text-muted-foreground">Only PDF files are supported</p>
+
+                    {!selectedCard && <p className="mt-4 text-sm text-amber-500">Please select a card first</p>}
+                  </div>
                 )}
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onClick={() => {
-                  if (selectedCard) {
-                    document.getElementById("statement-upload")?.click()
-                  }
-                }}
-              >
-                <input
-                  id="statement-upload"
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={handleFileInputChange}
-                  disabled={!selectedCard}
-                />
-                <ArrowUpCircle className="h-10 w-10 text-muted-foreground/60 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-1">Upload Statement PDF</h3>
-                <p className="text-sm text-muted-foreground mb-4">Drag and drop or click to browse</p>
-                <p className="text-xs text-muted-foreground">Only PDF files are supported</p>
 
-                {!selectedCard && <p className="mt-4 text-sm text-amber-500">Please select a card first</p>}
+                {fileUploaded && selectedCard && !isUploading && (
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={resetUpload}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={handleUpload}>
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Analyze Statement
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {fileUploaded && selectedCard && !isUploading && (
-              <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={resetUpload}>
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleUpload}>
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Analyze Statement
-                </Button>
+        <TabsContent value="gmail">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-primary" />
+                <CardTitle>Gmail Sync</CardTitle>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <CardDescription>Automatically fetch statements from your email</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-md bg-muted/50 p-4">
+                <div className="flex items-start gap-4">
+                  <div className="mt-1 rounded-full bg-primary/10 p-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium">Automatic Statement Import</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      PerkPal will automatically detect and import credit card statements from your Gmail account.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Button disabled className="w-full">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>Connect Gmail</span>
+                </div>
+              </Button>
+
+              <div className="flex items-center gap-2 rounded-md bg-blue-500/10 p-3 text-blue-600">
+                <Construction className="h-5 w-5 flex-shrink-0" />
+                <p className="text-xs">
+                  We're currently building this feature. It will be available in the next update.
+                </p>
+              </div>
+
+              <div className="rounded-md bg-yellow-500/10 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-yellow-600">How Gmail Sync Will Work</h4>
+                    <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <span className="select-none">•</span>
+                        <span>Securely connect your Gmail account</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="select-none">•</span>
+                        <span>PerkPal identifies statement emails from banks and card issuers</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="select-none">•</span>
+                        <span>Statements are automatically downloaded and analyzed</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="select-none">•</span>
+                        <span>Get insights without manual uploads</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Card>
         <CardHeader>

@@ -632,8 +632,7 @@ export function RewardsView() {
                                 {category.cards.map((card, index) => (
                                   <div key={index} className="flex justify-between items-center text-sm">
                                     <div className="flex items-center gap-1">
-                                      <span className="font-medium">{card.name}</span>
-                                      <span className="text-xs text-muted-foreground">({card.issuer})</span>
+                                      <span className="font-medium">{card.name.replace(card.issuer, '').replace('Credit Card', '').trim()}</span>
                                     </div>
                                     <span>{card.points.toLocaleString()} pts</span>
                                   </div>
