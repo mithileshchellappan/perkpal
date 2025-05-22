@@ -114,7 +114,7 @@ export default function Page() {
       <div
         className={cn(
           "grid transition-all duration-300",
-          sidebarCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[280px_1fr]",
+          sidebarCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[240px_1fr]",
         )}
       >
         <aside className="border-r bg-background/50 backdrop-blur flex flex-col h-screen relative">

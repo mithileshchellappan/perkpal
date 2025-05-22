@@ -53,6 +53,7 @@ export async function GET(request: Request) {
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('read', false)
+      .is('read', unreadOnly ? false : null)
 
     if (countError) {
       console.error('Error counting unread notifications:', countError)

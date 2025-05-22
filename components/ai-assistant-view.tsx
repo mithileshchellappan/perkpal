@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { ArrowUp, PenSquare, Bot } from "lucide-react"
+import { ArrowUp, PenSquare, Bot, Copy, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -11,6 +11,7 @@ import { useUserCards } from "@/hooks/use-user-cards"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from 'remark-gfm';
 import { useUser } from "@clerk/nextjs"
+import { useToast } from "@/hooks/use-toast"
 
 type MessageType = "user" | "system"
 
@@ -34,8 +35,9 @@ export function AiAssistantView() {
   const shouldFocusAfterStreamingRef = useRef(false)
   const mainContainerRef = useRef<HTMLDivElement>(null)
   const { cards } = useUserCards()
+  const { toast } = useToast()
   // Initialize useChat hook
-  const { messages: aiMessages, handleInputChange: handleAiInputChange,  append, isLoading, } = useChat({
+  const { messages: aiMessages, reload, handleInputChange: handleAiInputChange, append, isLoading, } = useChat({
     api: "/api/chat",
     body: {
       system: `You are a helpful credit card points and rewards assistant.
@@ -225,12 +227,12 @@ Instructions:
   const handleSampleQuestionClick = (question: string) => {
     setInputValue(question)
     setHasTyped(true)
-    
+
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto"
       const newHeight = Math.max(24, Math.min(textareaRef.current.scrollHeight, 80))
       textareaRef.current.style.height = `${newHeight}px`
-      
+
       // Focus the textarea
       if (!isMobile) {
         textareaRef.current.focus()
@@ -238,7 +240,27 @@ Instructions:
     }
   }
 
-  const {user} = useUser()
+  const { user } = useUser()
+
+  const handleCopyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast({
+          title: "Copied to clipboard",
+          description: "Message content has been copied to clipboard.",
+          duration: 2000,
+        })
+      })
+      .catch((err) => {
+        console.error("Failed to copy text: ", err)
+        toast({
+          title: "Failed to copy",
+          description: "Could not copy the message to clipboard.",
+          variant: "destructive",
+          duration: 2000,
+        })
+      })
+  }
 
   return (
     <div ref={mainContainerRef} className="flex pt-4 flex-col h-full w-full">
@@ -274,17 +296,41 @@ Instructions:
                   {message.role === "user" ? (
                     <span>{message.content}</span>
                   ) : (
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-white prose-headings:text-white prose-strong:text-white prose-a:text-blue-400">
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-white prose-headings:text-white prose-strong:text-white prose-a:text-blue-400 relative group">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                       >
                         {message.content}
                       </ReactMarkdown>
+                      <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-full"
+                          hidden={isLoading}
+                          onClick={() => handleCopyToClipboard(message.content)}
+                        >
+                          <Copy className="h-4 w-4" />
+                          <span className="sr-only">Copy</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-full ml-2"
+                          hidden={isLoading}
+                          onClick={() => reload()}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          <span className="sr-only">Regenerate</span>
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
+                
               </div>
             ))}
+            
             <div ref={messagesEndRef} />
           </div>
         ) : (
@@ -292,7 +338,7 @@ Instructions:
             <h2 className="text-3xl font-semibold mb-6">How can I help you, {user?.firstName}? </h2>
             <div className="flex flex-col space-y-4 w-full">
               {sampleQuestions.map((question, index) => (
-                <button 
+                <button
                   key={index}
                   onClick={() => handleSampleQuestionClick(question)}
                   className="w-full rounded-md py-2 text-sm text-left text-secondary-foreground hover:bg-secondary/50 sm:px-3"

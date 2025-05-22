@@ -126,7 +126,7 @@ export function NewCardView() {
                     ? cards.map(card => `${card.name.replaceAll(card.issuer, '').replaceAll('Credit Card', '')}`).join(', ') 
                     : 'No cards added yet'
                   } 
-                   disabled={cards.length !== 0}
+                   disabled
                 />
               )}
             </div>
