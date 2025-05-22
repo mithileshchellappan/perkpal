@@ -81,6 +81,7 @@ export async function POST(request: Request) {
     const { cardId, year, month, pointsBalance } = validationResult.data;
     
     try {
+      if(!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       const entry = await addCardPointsEntry({
         userId,
         cardId,

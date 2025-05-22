@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCardComparison } from '@/lib/services/perplexityService';
-import { CardIdentifierSchema } from '@/types/cards';
+import { CardIdentifierSchema, ComparisonRequestSchema } from '@/types/cards';
 import { z } from 'zod';
 import { getCachedCardComparison, setCachedCardComparison } from '@/lib/db';
-
-// Zod schema for the request body
-const ComparisonRequestSchema = z.object({
-  cardsToCompare: z.array(CardIdentifierSchema).min(2, { message: "At least two cards are required for comparison." }),
-  country: z.string().min(1, { message: "Country is required." }),
-});
 
 export async function POST(request: Request) {
   try {

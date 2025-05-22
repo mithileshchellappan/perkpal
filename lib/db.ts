@@ -1,5 +1,5 @@
 import { supabase, toCamelCase, toSnakeCase } from './supabase';
-import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse as InternalComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse, PromotionSpotlightResponse, CardStatementAnalysisResponse } from '@/types/cards';
+import { CardProductSuggestionResponse, ComprehensiveCardAnalysisResponse as InternalComprehensiveCardAnalysisResponse, CardPartnerProgramsResponse, PromotionSpotlightResponse, CardStatementAnalysisResponse, ComparisonRequest } from '@/types/cards';
 import { CardPointsEntry } from '@/types/points';
 
 // Re-export for use in other modules if needed, or use the internal one directly if not meant to be widely public
@@ -337,6 +337,7 @@ export interface UserCard {
   network: string;
   country: string;
   pointsBalance?: number;
+  baseValue?: number;
   cardAnalysisData?: ComprehensiveCardAnalysisResponse | null;
   addedDate: string;
 }
@@ -471,7 +472,6 @@ export async function getCardById(userId: string, cardId: string): Promise<(User
     network: camelCard.network,
     country: camelCard.country,
     pointsBalance: camelCard.pointsBalance,
-    last4Digits: camelCard.last4Digits,
     cardAnalysisData: camelCard.cardAnalysisData 
       ? JSON.parse(camelCard.cardAnalysisData)
       : null,
@@ -731,7 +731,7 @@ async function checkCardExists(userId: string, cardId: string): Promise<boolean>
 // --- Card Comparison Cache Functions ---
 
 export async function getCachedCardComparison(
-  cardsToCompare: Array<{ cardName: string; issuingBank: string }>,
+  cardsToCompare: ComparisonRequest['cardsToCompare'],
   country: string
 ): Promise<any | null> {
   try {
@@ -772,7 +772,7 @@ export async function getCachedCardComparison(
 }
 
 export async function setCachedCardComparison(
-  cardsToCompare: Array<{ cardName: string; issuingBank: string }>,
+  cardsToCompare: Array<{ cardName?: string; issuingBank?: string }>,
   country: string,
   comparisonData: any
 ): Promise<void> {
@@ -890,7 +890,7 @@ export async function storeStatementAnalysis(
 
 export async function getCachedEcommerceRewards(
   country: string,
-  cardIdentifiers: Array<{ cardName: string; issuingBank: string }>
+  cardIdentifiers: Array<{ cardName?: string; issuingBank?: string }>
 ): Promise<any | null> {
   try {
     const db = assertSupabaseClient();
@@ -933,7 +933,7 @@ export async function getCachedEcommerceRewards(
 
 export async function setCachedEcommerceRewards(
   country: string,
-  cardIdentifiers: Array<{ cardName: string; issuingBank: string }>,
+  cardIdentifiers: Array<{ cardName?: string; issuingBank?: string }>,
   rewardsData: any
 ): Promise<void> {
   try {

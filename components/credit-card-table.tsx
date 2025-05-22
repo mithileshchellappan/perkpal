@@ -115,7 +115,7 @@ export function CreditCardTable({ cards, onEdit, onDelete }: CreditCardTableProp
       </Table>
 
       {editCard && (
-        <AddEditCardModal open={showEditModal} onOpenChange={setShowEditModal} card={editCard} onSave={handleSave} />
+        <AddEditCardModal open={showEditModal} onOpenChange={setShowEditModal} card={editCard} onSave={handleSave} addCardAction={async (_) => { return null }} />
       )}
     </>
   )

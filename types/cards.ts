@@ -252,3 +252,9 @@ export type CardOffer = z.infer<typeof CardOfferSchema>;
 
 export const CardOffersResponseSchema = z.array(CardOfferSchema);
 export type CardOffersResponse = z.infer<typeof CardOffersResponseSchema>; 
+
+export const ComparisonRequestSchema = z.object({
+  cardsToCompare: z.array(CardIdentifierSchema).min(2, { message: "At least two cards are required for comparison." }),
+  country: z.string().min(1, { message: "Country is required." }),
+});
+export type ComparisonRequest = z.infer<typeof ComparisonRequestSchema>;
