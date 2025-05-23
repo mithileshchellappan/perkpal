@@ -390,14 +390,50 @@ export async function getCardLatestOffers(
 ): Promise<CardOffersResponse> {
   const systemPrompt = 'You are an AI assistant that provides accurate and concise information about credit card offers and promotions. You always respond in the requested JSON format without any additional explanatory text or markdown formatting outside of the JSON structure itself.';
   const userPrompt = `
-    Generate a JSON summary of current offers and promotions for the ${issuingBank} ${cardName} credit card in ${country}.
+    Generate a JSON summary of current offers, promotions, and important warnings for the ${issuingBank} ${cardName} credit card in ${country}.
     Focus specifically on:
+    
+    POSITIVE OFFERS:
     1. New offers available in the last 7 days
     2. Current transfer partner bonuses
     3. Merchant-specific offers
     4. Seasonal promotions
-
-    Only include significant, confirmed offers from official sources. Return an empty array if no relevant offers exist.
+    
+    WARNING NOTIFICATIONS (Important changes that negatively impact cardholders):
+    5. Lounge access removal or restrictions
+    6. Rewards rate reductions or devaluations
+    7. Annual fee increases
+    8. Benefits discontinued or downgraded
+    9. Program changes that reduce value
+    10. Expiring offers or benefits (within next 30 days)
+    11. New fees being introduced
+    12. Changes to transfer partner ratios (negative)
+    
+    For each notification/offer, provide:
+    - type: The notification type (use the specific types listed below)
+    - title: A clear, concise title for the notification
+    - description: Detailed description of the offer or warning
+    - start_date: When the offer/change started (ISO format)
+    - end_date: When it expires (ISO format, null if no expiry)
+    - source_url: Direct link to the official source (bank website, press release, terms page, etc.)
+    
+    For warning notifications, ensure the notification_type reflects the nature of the warning:
+    - "lounge_access_removal" for lounge access changes
+    - "rewards_rate_reduction" for rate decreases
+    - "annual_fee_increase" for fee increases
+    - "benefits_discontinued" for discontinued benefits
+    - "program_changes" for negative program changes
+    - "expiring_offers" for time-sensitive expirations
+    
+    IMPORTANT: Always provide a valid source_url when possible. This should be a direct link to:
+    - Official bank announcement pages
+    - Terms and conditions pages
+    - Press releases
+    - Promotional landing pages
+    - Card benefit pages
+    If no specific source URL is available, use the main card page or bank's offers page.
+    
+    Only include significant, confirmed offers and warnings from official sources. Return an empty array if no relevant offers or warnings exist.
   `;
 
   try {

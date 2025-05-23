@@ -1,5 +1,15 @@
 // Notification type enum
-export type NotificationType = 'new_offer' | 'transfer_bonus' | 'merchant_offer' | 'seasonal_promotion';
+export type NotificationType = 
+  'new_offer' | 
+  'transfer_bonus' | 
+  'merchant_offer' | 
+  'seasonal_promotion' |
+  'lounge_access_removal' |
+  'rewards_rate_reduction' |
+  'annual_fee_increase' |
+  'benefits_discontinued' |
+  'program_changes' |
+  'expiring_offers';
 
 // Basic notification structure
 export interface Notification {
@@ -12,6 +22,7 @@ export interface Notification {
   description: string;
   start_date: string;
   end_date: string | null;
+  source_url: string | null;
   read: boolean;
   created_at: string;
 }
@@ -42,4 +53,5 @@ export interface CardOfferResult {
   description: string;
   start_date: string;
   end_date: string | null;
+  source_url: string | null;
 } 

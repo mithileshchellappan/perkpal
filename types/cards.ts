@@ -242,16 +242,28 @@ export type CardPartnerProgramsResponse = z.infer<typeof CardPartnerProgramsResp
 
 // Card Offer Schema
 export const CardOfferSchema = z.object({
-  type: z.enum(['new_offer', 'transfer_bonus', 'merchant_offer', 'seasonal_promotion']),
+  type: z.enum([
+    'new_offer', 
+    'transfer_bonus', 
+    'merchant_offer', 
+    'seasonal_promotion',
+    'lounge_access_removal',
+    'rewards_rate_reduction',
+    'annual_fee_increase',
+    'benefits_discontinued',
+    'program_changes',
+    'expiring_offers'
+  ]),
   title: z.string(),
   description: z.string(),
   start_date: z.string(),
   end_date: z.string().nullable(),
+  source_url: z.string(),
 });
 export type CardOffer = z.infer<typeof CardOfferSchema>;
 
 export const CardOffersResponseSchema = z.array(CardOfferSchema);
-export type CardOffersResponse = z.infer<typeof CardOffersResponseSchema>; 
+export type CardOffersResponse = z.infer<typeof CardOffersResponseSchema>;
 
 export const ComparisonRequestSchema = z.object({
   cardsToCompare: z.array(CardIdentifierSchema).min(2, { message: "At least two cards are required for comparison." }),

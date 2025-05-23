@@ -2,10 +2,11 @@
 module.exports = {
 	darkMode: ["class"],
 	content: [
-	  './pages/**/*.{ts,tsx}',
-	  './components/**/*.{ts,tsx}',
-	  './app/**/*.{ts,tsx}',
-	  './src/**/*.{ts,tsx}',
+	  "./pages/**/*.{ts,tsx}",
+	  "./components/**/*.{ts,tsx}",
+	  "./app/**/*.{ts,tsx}",
+	  "./src/**/*.{ts,tsx}",
+	  "*.{js,ts,jsx,tsx,mdx}",
 	],
 	theme: {
 	  container: {
@@ -70,16 +71,19 @@ module.exports = {
 			  transform: "translateX(100%)",
 			},
 		  },
+		  fadeIn: {
+			from: { opacity: 0 },
+			to: { opacity: 1 },
+		  },
 		},
 		animation: {
 		  "accordion-down": "accordion-down 0.2s ease-out",
 		  "accordion-up": "accordion-up 0.2s ease-out",
 		  shimmer: "shimmer 2s infinite",
+		  "fade-in": "fadeIn 0.5s ease-in-out forwards",
 		},
 	  },
 	},
-	plugins: [
-		require("tailwindcss-animate"),
-		require("@tailwindcss/typography"),
-	],
-}
+	plugins: [require("tailwindcss-animate")],
+  }
+  
