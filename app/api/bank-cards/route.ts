@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getBankCardProducts } from '@/lib/db';
 
 // Define interfaces for our data structures
@@ -13,7 +13,7 @@ interface BankWithCards {
   cards: CardProduct[];
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Get country from query params
     const url = new URL(request.url);
