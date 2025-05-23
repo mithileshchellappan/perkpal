@@ -135,15 +135,15 @@ export default function Page() {
               {sidebarCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
             </Button>
           </div>
-          <nav className="space-y-2 px-2 flex-1">
+          <nav className="space-y-2 px-2 pt-6 flex-1">
             <Button
               variant={activeView === "dashboard" ? "default" : "ghost"}
               className={cn("w-full justify-start gap-2", sidebarCollapsed && "justify-center px-0")}
               onClick={() => setActiveView("dashboard")}
-              title="Dashboard"
+              title="Home"
             >
               <LayoutDashboard className="h-4 w-4" />
-              {!sidebarCollapsed && <span>Dashboard</span>}
+              {!sidebarCollapsed && <span>Home</span>}
             </Button>
             <Button
               variant={activeView === "cards" ? "default" : "ghost"}
@@ -228,7 +228,7 @@ export default function Page() {
               </div>
               <div className="mb-6 flex items-center justify-between">
                 <div className="space-y-1">
-                  <h1 className="text-2xl font-bold">Credit Card Points Dashboard</h1>
+                  <h1 className="text-2xl font-bold">Home</h1>
                   <div className="text-sm text-muted-foreground">Track and manage your credit card rewards</div>
                 </div>
               </div>
@@ -287,13 +287,6 @@ export default function Page() {
                 </div>
                 <StatsChart cardId={selectedCard?.id} />
               </Card>
-
-              <div className="mt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold">Credit Card Details</h2>
-                </div>
-                <CreditCardTable cards={cards} onEdit={handleEditCard} onDelete={handleDeleteCard} />
-              </div>
             </div>
           )}
 

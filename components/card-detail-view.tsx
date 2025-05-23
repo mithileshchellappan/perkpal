@@ -46,11 +46,9 @@ export function CardDetailView({ card, onClose }: CardDetailViewProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
         <div className="md:col-span-1">
-          <Card className="h-full">
+          <Card className="h-fit">
             <CardContent className="p-4">
-              <div className="flex justify-center mb-4">
-                <CreditCard card={card} isActive={true} hideDetails={false} />
-              </div>
+              <CreditCard card={card} isActive={true} hideDetails={false} />
 
               <div className="space-y-4 mt-4">
                 <div className="flex justify-between items-center">

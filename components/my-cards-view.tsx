@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast"
 import type { CreditCardType } from "@/lib/types"
 import { Plus } from "lucide-react"
 import { useUserCards } from "@/hooks/use-user-cards"
+import { CreditCardTable } from "@/components/credit-card-table"
 
 interface MyCardsViewProps {
   cards: CreditCardType[]
@@ -64,6 +65,15 @@ export function MyCardsView({ onAddCard, onRemoveCard }: Omit<MyCardsViewProps, 
         duration: 3000,
       })
     }
+  }
+  
+  const handleEditCard = (updatedCard: CreditCardType) => {
+    // This would typically update the card in the database
+    toast({
+      title: "Card updated",
+      description: "The credit card has been successfully updated.",
+      duration: 3000,
+    })
   }
 
   if (isLoadingCards) {
@@ -182,7 +192,10 @@ export function MyCardsView({ onAddCard, onRemoveCard }: Omit<MyCardsViewProps, 
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
-                          {displayCards.reduce((sum, card) => sum + card.baseValue, 0).toLocaleString()} {displayCards[0]?.currency}
+                          {displayCards.reduce((sum, card) => sum + card.baseValue, 0).toLocaleString(undefined, {
+                            currency: displayCards[0]?.currency || "USD",
+                            style: "currency",
+                          })}
                         </p>
                         <p className="text-sm text-muted-foreground">Estimated redemption value</p>
                       </CardContent>
@@ -194,12 +207,25 @@ export function MyCardsView({ onAddCard, onRemoveCard }: Omit<MyCardsViewProps, 
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
-                          {displayCards.reduce((sum, card) => sum + (card.annualFee || 0), 0).toLocaleString()} {displayCards[0]?.currency}
+                          {displayCards.reduce((sum, card) => sum + (card.annualFee || 0), 0).toLocaleString(undefined, {
+                            currency: displayCards[0]?.currency || "USD",
+                            style: "currency",
+                          })}
                         </p>
                         <p className="text-sm text-muted-foreground">Total annual cost</p>
                       </CardContent>
                     </Card>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Credit Card Details</CardTitle>
+                  <CardDescription>Detailed information about all your cards</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CreditCardTable cards={displayCards} onEdit={handleEditCard} onDelete={handleRemoveCard} />
                 </CardContent>
               </Card>
             </TabsContent>
