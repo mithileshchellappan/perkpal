@@ -1,9 +1,9 @@
 import { CardStatementAnalysisResponse, CardStatementCategory } from '@/types/cards';
 import { perplexity } from '@ai-sdk/perplexity';
-import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { CardStatementAnalysisResponseSchema } from '@/types/cards';
 import { storeStatementAnalysis as dbStoreStatementAnalysis } from '@/lib/db';
+import pdf2md from '@opendocsg/pdf2md';
 
 /**
  * Analyze a credit card statement using Perplexity AI
@@ -56,29 +56,12 @@ export async function analyzeCardStatement(
   `;
 
   try {
-    // Note: In a production environment, you would use proper PDF extraction and parsing
-    // This is a simplified implementation
-    
+    const text = await pdf2md(pdfBuffer);
     const { object } = await generateObject({
-      model: openai('gpt-4o'),
+      model: perplexity('sonar-pro'),
       system: systemPrompt,
+      prompt: userPrompt + "\n\n" + text,
       schema: CardStatementAnalysisResponseSchema,
-      messages: [
-        {
-            role: 'user',
-            content: userPrompt
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'file',
-              data: pdfBuffer,
-              mimeType: 'application/pdf',
-            }
-          ]
-        }
-      ],
       providerOptions: {
         perplexity: {
           thinking: { type: "enabled" },

@@ -14,6 +14,7 @@
     "@ai-sdk/perplexity": "^1.1.9",
     "@ai-sdk/react": "^1.2.12",
     "@clerk/nextjs": "^6.19.3",
+    "@opendocsg/pdf2md": "^0.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.13",
     "@radix-ui/react-avatar": "^1.1.9",
     "@radix-ui/react-dialog": "^1.1.13",
