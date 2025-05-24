@@ -36,6 +36,16 @@ export function AiAssistantView() {
   const { toast } = useToast()
   const [selectedCards, setSelectedCards] = useState<string[]>(["all"])
 
+  // Get selected cards for the system prompt
+  const getSelectedCardsForPrompt = () => {
+    if (selectedCards.includes("all")) {
+      return cards
+    }
+    return cards.filter(card => selectedCards.includes(`${card.issuer}-${card.name}`))
+  }
+
+  const selectedCardsForPrompt = getSelectedCardsForPrompt()
+
   const { messages: aiMessages, reload, handleInputChange: handleAiInputChange, append, isLoading, } = useChat({
     api: "/api/chat",
     body: {
@@ -47,10 +57,10 @@ Your role:
 - Be concise, direct, and helpful.
 
 User context:
-- The user has the following cards: ${cards.map(card =>
+- The user has the following cards: ${selectedCardsForPrompt.map(card =>
         `${card.issuer} ${card.name} (Points Balance: ${card.pointsBalance}, Status: ${card.status}, Rewards Rate: ${card.rewardsRate ?? 0}%)`
       ).join("\n")}.
-- The user is located in ${cards[0]?.country ?? "India"}.
+- The user is located in ${selectedCardsForPrompt[0]?.country ?? "India"}.
 - The current date is ${new Date().toLocaleString()}.
 
 Instructions:
@@ -459,7 +469,7 @@ Instructions:
                 <div className="flex-1 overflow-x-auto">
                   {selectedCards.includes("all") ? (
                     <div className="flex items-center px-2">
-                      <span className="text-xs text-muted-foreground">All Cards added in context</span>
+                      <span className="text-xs text-muted-foreground">All Cards are added in context</span>
                     </div>
                   ) : selectedCards.length > 0 ? (
                     <div className="flex gap-1">
