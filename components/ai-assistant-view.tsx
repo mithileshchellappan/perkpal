@@ -2,211 +2,24 @@
 
 import React from "react"
 import { useState, useRef, useEffect } from "react"
-import { ArrowUp, PenSquare, Bot, Copy, RefreshCw, ExternalLink } from "lucide-react"
+import { ArrowUp, PenSquare, Bot, Copy, RefreshCw, ExternalLink, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { cn } from "@/lib/utils"
 import { useChat } from "@ai-sdk/react"
 import { useUserCards } from "@/hooks/use-user-cards"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from 'remark-gfm';
 import { useUser } from "@clerk/nextjs"
 import { useToast } from "@/hooks/use-toast"
-
-type MessageType = "user" | "system"
-
-interface Message {
-  id: string
-  content: string
-  type: MessageType
-  completed?: boolean
-  newSection?: boolean
-  sources?: Array<{ url: string; title?: string }>
-}
+import ContentWithCitations from "./content-with-citation"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 
-function CitationButton({ 
-  number, 
-  source, 
-  onClick 
-}: { 
-  number: number
-  source?: { url: string; title?: string }
-  onClick?: () => void 
-}) {
-  const handleClick = () => {
-    if (source?.url) {
-      window.open(source.url, '_blank', 'noopener,noreferrer')
-    }
-    onClick?.()
-  }
-
-
-  const getWebsiteInfo = (url: string) => {
-    try {
-      const urlObj = new URL(url)
-      const domain = urlObj.hostname
-      const websiteName = domain.replace('www.', '').split('.')[0]
-      const capitalizedName = websiteName.charAt(0).toUpperCase() + websiteName.slice(1)
-      return {
-        domain,
-        name: capitalizedName,
-        favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=16`
-      }
-    } catch {
-      return {
-        domain: url,
-        name: 'Unknown Source',
-        favicon: null
-      }
-    }
-  }
-
-  const websiteInfo = source?.url ? getWebsiteInfo(source.url) : null
-  if (!source?.url) {
-
-    return (
-      <sup>
-        <button
-          onClick={handleClick}
-          className="inline-flex items-center justify-center w-4 h-4 mx-0.5 text-[0.6rem] font-mono text-white dark:text-gray-900 bg-gray-800 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 border rounded transition-colors duration-200 cursor-pointer"
-          title={`Source ${number}`}
-        >
-          {number}
-        </button>
-      </sup>
-    )
-  }
-
-  return (
-    <sup>
-      <HoverCard>
-        <HoverCardTrigger asChild>
-          <button
-            onClick={handleClick}
-            className="inline-flex items-center justify-center w-4 h-4 mx-0.5 text-[0.6rem] font-mono text-white dark:text-gray-900 bg-gray-800 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 border rounded transition-colors duration-200 cursor-pointer"
-            title={source?.title || source?.url || `Source ${number}`}
-          >
-            {number}
-          </button>
-        </HoverCardTrigger>
-        <HoverCardContent className="w-80 p-3" side="top">
-          <div className="flex items-center space-x-3">
-            {websiteInfo?.favicon && (
-              <img 
-                src={websiteInfo.favicon} 
-                alt={`${websiteInfo.name} favicon`}
-                className="w-4 h-4 flex-shrink-0"
-                onError={(e) => {
-
-                  (e.target as HTMLImageElement).style.display = 'none'
-                }}
-              />
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {source.title || websiteInfo?.name || 'Source'}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {websiteInfo?.domain}
-              </p>
-            </div>
-            <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-          </div>
-        </HoverCardContent>
-      </HoverCard>
-    </sup>
-  )
-}
-
-
-function ContentWithCitations({ 
-  content, 
-  sources = [] 
-}: { 
-  content: string
-  sources?: Array<{ url: string; title?: string }>
-}) {
-  const components = {
-    p: ({ children }: { children: React.ReactNode }) => {
-      const textContent = React.Children.toArray(children).join('')
-      
-      if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
-        return <div>{parseTextWithCitations(textContent)}</div>
-      }
-      
-      return <p>{children}</p>
-    },
-    td: ({ children }: { children: React.ReactNode }) => {
-      const textContent = React.Children.toArray(children).join('')
-      
-      if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
-        return <td>{parseTextWithCitations(textContent)}</td>
-      }
-      
-      return <td>{children}</td>
-    },
-    th: ({ children }: { children: React.ReactNode }) => {
-      const textContent = React.Children.toArray(children).join('')
-      
-      if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
-        return <th>{parseTextWithCitations(textContent)}</th>
-      }
-      
-      return <th>{children}</th>
-    }
-  }
-
-  const parseTextWithCitations = (text: string) => {
-    const citationRegex = /\[(\d+)\]/g
-    const parts = []
-    let lastIndex = 0
-    let match
-
-    while ((match = citationRegex.exec(text)) !== null) {
-
-      if (match.index > lastIndex) {
-        const beforeText = text.slice(lastIndex, match.index)
-        if (beforeText) {
-          parts.push(<span key={`text-${lastIndex}`}>{beforeText}</span>)
-        }
-      }
-
-
-      const citationNumber = parseInt(match[1])
-              const source = sources[citationNumber - 1]
-      parts.push(
-        <CitationButton
-          key={`citation-${match.index}`}
-          number={citationNumber}
-          source={source}
-        />
-      )
-
-      lastIndex = match.index + match[0].length
-    }
-
-
-    if (lastIndex < text.length) {
-      const remainingText = text.slice(lastIndex)
-      if (remainingText) {
-        parts.push(<span key={`text-${lastIndex}`}>{remainingText}</span>)
-      }
-    }
-
-    return parts.length > 0 ? parts : text
-  }
-
-  return (
-    <ReactMarkdown 
-      remarkPlugins={[remarkGfm]}
-      components={components}
-    >
-      {content}
-    </ReactMarkdown>
-  )
-}
 
 export function AiAssistantView() {
   const [inputValue, setInputValue] = useState("")
@@ -221,6 +34,7 @@ export function AiAssistantView() {
   const mainContainerRef = useRef<HTMLDivElement>(null)
   const { cards } = useUserCards()
   const { toast } = useToast()
+  const [selectedCards, setSelectedCards] = useState<string[]>(["all"])
 
   const { messages: aiMessages, reload, handleInputChange: handleAiInputChange, append, isLoading, } = useChat({
     api: "/api/chat",
@@ -423,6 +237,36 @@ Instructions:
 
   const { user } = useUser()
 
+  const handleCardSelection = (cardId: string) => {
+    if (cardId === "all") {
+      setSelectedCards(["all"])
+    } else {
+      setSelectedCards(prev => {
+        const newSelection = prev.filter(id => id !== "all")
+        if (newSelection.includes(cardId)) {
+          const filtered = newSelection.filter(id => id !== cardId)
+          return filtered.length === 0 ? ["all"] : filtered
+        } else {
+          return [...newSelection, cardId]
+        }
+      })
+    }
+  }
+
+  const removeCard = (cardId: string) => {
+    setSelectedCards(prev => {
+      const filtered = prev.filter(id => id !== cardId)
+      return filtered.length === 0 ? ["all"] : filtered
+    })
+  }
+
+  const getSelectedCardsDisplay = () => {
+    if (selectedCards.includes("all")) {
+      return "All Cards"
+    }
+    return selectedCards.length
+  }
+
   const handleCopyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
       .then(() => {
@@ -528,7 +372,7 @@ Instructions:
         )}
       </div>
 
-      <div className="sticky bottom-0 p-4 border-t mt-auto">
+      <div className="sticky bottom-0 p-4 mt-auto">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
           <div
             ref={inputContainerRef}
@@ -538,7 +382,7 @@ Instructions:
             )}
             onClick={handleInputContainerClick}
           >
-            <div className="pt-3 pb-6">
+            <div className="pt-3 pb-8">
               <Textarea
                 ref={textareaRef}
                 placeholder={isLoading ? "Waiting for response..." : "Ask anything about your cards and points..."}
@@ -557,7 +401,92 @@ Instructions:
             </div>
 
             <div className="absolute bottom-3 left-3 right-3">
-              <div className="flex items-center justify-end">
+              <div className="flex items-center gap-2">
+                {/* Card Selection Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full h-8 w-8 border-0 bg-muted hover:bg-muted/80 flex-shrink-0"
+                    >
+                      <Plus className="h-4 w-4 text-muted-foreground" />
+                      <span className="sr-only">Select cards</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem
+                      onClick={() => handleCardSelection("all")}
+                      className={cn(
+                        "cursor-pointer",
+                        selectedCards.includes("all") && "bg-accent"
+                      )}
+                    >
+                      All Cards
+                      {selectedCards.includes("all") && (
+                        <span className="ml-auto text-xs text-muted-foreground">✓</span>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {cards.map((card) => {
+                      const cardId = `${card.issuer}-${card.name}`
+                      const isSelected = selectedCards.includes(cardId)
+                      return (
+                        <DropdownMenuItem
+                          key={cardId}
+                          onClick={() => handleCardSelection(cardId)}
+                          className={cn(
+                            "cursor-pointer",
+                            isSelected && "bg-accent"
+                          )}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium">{card.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {card.pointsBalance} points
+                            </span>
+                          </div>
+                          {isSelected && (
+                            <span className="ml-auto text-xs text-muted-foreground">✓</span>
+                          )}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <div className="flex-1 overflow-x-auto">
+                  {selectedCards.includes("all") ? (
+                    <div className="flex items-center px-2">
+                      <span className="text-xs text-muted-foreground">All Cards added in context</span>
+                    </div>
+                  ) : selectedCards.length > 0 ? (
+                    <div className="flex gap-1">
+                      {selectedCards.map((cardId) => {
+                        const card = cards.find(c => `${c.issuer}-${c.name}` === cardId)
+                        if (!card) return null
+                        return (
+                          <div
+                            key={cardId}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-secondary text-secondary-foreground rounded-full text-xs whitespace-nowrap flex-shrink-0"
+                          >
+                            <span>{card.name.replace("Card", "").replace("Credit", "").replace(card.issuer, "")}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeCard(cardId)}
+                              className="hover:bg-secondary-foreground/20 rounded-full p-0.5"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Submit Button */}
                 <Button
                   type="submit"
                   variant="outline"
@@ -591,6 +520,8 @@ Instructions:
             opacity: 1;
           }
         }
+
+
       `}</style>
     </div>
   )

@@ -222,7 +222,7 @@ export default function Page() {
         </aside>
         <main className="overflow-auto h-screen">
           {activeView === "dashboard" && (
-            <div className="p-6">
+            <div className="p-6 pb-4">
                <div className="absolute top-4 right-6 z-10">
                 <NotificationPanel />
               </div>
