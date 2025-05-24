@@ -267,7 +267,6 @@ export function StatementUpload({ cards }: StatementUploadProps) {
               <TabsList className="mb-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="categories">Categories</TabsTrigger>
-                <TabsTrigger value="points">Points Analysis</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview">
@@ -391,12 +390,22 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                             <p className="text-sm text-muted-foreground">Points Earned</p>
                             <p className="text-lg font-semibold">{category.points_earned.toLocaleString()}</p>
                           </div>
+                          
                           <div>
-                            <p className="text-sm text-muted-foreground">Points per Rupee</p>
+                            <p className="text-sm text-muted-foreground">Points per {category.currency}</p>
                             <p className="text-lg font-semibold">
                               {(category.points_earned / category.total_spend).toFixed(2)}
                             </p>
                           </div>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden mt-4">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${((category.points_earned / category.total_spend) / 0.05) * 100}%`,
+                              background: getCategoryColor(category.category, index),
+                            }}
+                          />
                         </div>
                         {category.optimization_tips && (
                           <div className="mt-3 p-3 bg-muted/30 rounded-lg text-sm">
@@ -408,60 +417,6 @@ export function StatementUpload({ cards }: StatementUploadProps) {
                     </Card>
                   ))}
                 </div>
-              </TabsContent>
-
-              <TabsContent value="points">
-                <div className="rounded-lg border p-4 mb-6">
-                  <h3 className="font-medium mb-4">Points Earning Efficiency</h3>
-
-                  {analysisResults.categories.map((category, index) => {
-                    const pointsPerRupee = category.points_earned / category.total_spend
-                    return (
-                      <div key={index} className="mb-3 last:mb-0">
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm capitalize">{category.category}</span>
-                          <span className="text-sm">{pointsPerRupee.toFixed(2)} pts/₹</span>
-                        </div>
-                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full"
-                            style={{
-                              width: `${(pointsPerRupee / 0.05) * 100}%`,
-                              background: getCategoryColor(category.category, index),
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Points Optimization Suggestions</CardTitle>
-                    <CardDescription>How to maximize your reward points</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {analysisResults.categories
-                      .filter((cat) => cat.optimization_tips)
-                      .map((category, idx) => (
-                        <div key={idx} className="p-4 bg-muted/30 rounded-lg">
-                          <h4 className="font-medium mb-2">Optimize {category.category} spending</h4>
-                          <p className="text-sm">{category.optimization_tips}</p>
-                        </div>
-                      ))}
-
-                    {analysisResults.categories.filter((cat) => cat.optimization_tips).length === 0 && (
-                      <div className="p-4 bg-muted/30 rounded-lg">
-                        <h4 className="font-medium mb-2">Overall optimization</h4>
-                        <p className="text-sm">
-                          You're missing approximately {analysisResults.pointsMissedPercentage.toFixed(0)}% of your
-                          potential points. Consider using specialized cards for different spending categories.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
               </TabsContent>
             </Tabs>
           </CardContent>

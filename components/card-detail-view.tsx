@@ -48,7 +48,7 @@ export function CardDetailView({ card, onClose }: CardDetailViewProps) {
         <div className="md:col-span-1">
           <Card className="h-fit">
             <CardContent className="p-4">
-              <CreditCard card={card} isActive={true} hideDetails={false} />
+              <CreditCard card={card} isActive={true} hideDetails={true} />
 
               <div className="space-y-4 mt-4">
                 <div className="flex justify-between items-center">
@@ -68,7 +68,12 @@ export function CardDetailView({ card, onClose }: CardDetailViewProps) {
 
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Cash Value</span>
-                  <span className="font-medium">{cardDetails?.base_value_currency} {cardDetails?.base_value?.toLocaleString()}</span>
+                  <span className="font-medium">{card.cashValue?.toLocaleString(undefined,{
+                    currency: card.currency,
+                    style: "currency",
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}</span>
                 </div>
 
                 <div className="flex justify-between items-center">
@@ -87,7 +92,12 @@ export function CardDetailView({ card, onClose }: CardDetailViewProps) {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Base Value</span>
                       <span className="font-medium">
-                        {cardDetails.base_value} {cardDetails.base_value_currency}
+                        {cardDetails.base_value?.toLocaleString(undefined,{
+                          currency: card.currency,
+                          style: "currency",
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        })}
                       </span>
                     </div>
                   </>

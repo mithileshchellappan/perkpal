@@ -411,12 +411,21 @@ export function RewardsView() {
           })
 
           setAnalysesByMonth(groupedAnalyses)
-
-          // Set available months from the analyses
-          const periods = Object.keys(groupedAnalyses)
+          const periods = Object.keys(groupedAnalyses).sort((a, b) => {
+            const parseDate = (period: string) => {
+              if (period.match(/^\d{4}-\d{2}$/)) {
+                return new Date(period + '-01')
+              }
+              return new Date(period)
+            }
+            
+            const dateA = parseDate(a)
+            const dateB = parseDate(b)
+            
+            return dateB.getTime() - dateA.getTime()
+          })
           setAvailableMonths(periods)
 
-          // Set the most recent month as selected
           if (periods.length > 0) {
             setSelectedMonth(periods[0])
           }

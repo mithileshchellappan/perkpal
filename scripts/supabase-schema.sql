@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS partner_programs (
   country TEXT NOT NULL,
   partners_data JSONB NOT NULL,
   timestamp TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ, -- Add expiration date for TTL
   PRIMARY KEY (card_name, issuing_bank, country)
 );
 
@@ -121,8 +122,103 @@ CREATE TABLE IF NOT EXISTS cached_promotions (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_promotion_cache 
 ON cached_promotions(card_name, issuing_bank, country, rewards_program_key);
 
--- Optional: Row Level Security (RLS) - By default, table is accessible. 
--- Consider adding RLS if needed, e.g., allow only service_role to write.
--- ALTER TABLE cached_promotions ENABLE ROW LEVEL SECURITY;
--- CREATE POLICY "Allow read access to all users" ON cached_promotions FOR SELECT USING (true);
--- CREATE POLICY "Allow insert/update by service_role" ON cached_promotions FOR ALL USING (auth.role() = 'service_role'); 
+-- Table for card comparisons cache
+CREATE TABLE IF NOT EXISTS card_comparisons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cards_to_compare JSONB NOT NULL, -- Array of card objects
+  country TEXT NOT NULL,
+  comparison_data JSONB NOT NULL,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  UNIQUE (cards_to_compare, country)
+);
+
+-- Create index for card comparisons
+CREATE INDEX IF NOT EXISTS idx_card_comparisons_country ON card_comparisons(country);
+
+-- Table for ecommerce rewards cache
+CREATE TABLE IF NOT EXISTS ecommerce_rewards (
+  id SERIAL PRIMARY KEY,
+  country TEXT NOT NULL,
+  cards_key TEXT NOT NULL,
+  rewards_data JSONB NOT NULL,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  UNIQUE(country, cards_key)
+);
+
+-- Create index for ecommerce rewards
+CREATE INDEX IF NOT EXISTS idx_ecommerce_rewards_country ON ecommerce_rewards(country);
+
+-- Create statement_analyses table
+CREATE TABLE IF NOT EXISTS statement_analyses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  card_name TEXT NOT NULL,
+  issuing_bank TEXT NOT NULL,
+  country TEXT NOT NULL,
+  statement_period TEXT NOT NULL,
+  total_points_earned INTEGER NOT NULL,
+  total_potential_points INTEGER NOT NULL,
+  points_missed_percentage FLOAT NOT NULL,
+  categories JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT unique_user_card_period UNIQUE (user_id, card_name, issuing_bank, statement_period)
+);
+
+-- Create indexes for statement analyses
+CREATE INDEX IF NOT EXISTS idx_statement_analyses_user_id ON statement_analyses(user_id);
+CREATE INDEX IF NOT EXISTS idx_statement_analyses_card_name ON statement_analyses(card_name);
+CREATE INDEX IF NOT EXISTS idx_statement_analyses_period ON statement_analyses(statement_period);
+
+-- Add comment to statement_analyses table
+COMMENT ON TABLE statement_analyses IS 'Stores analyses of user credit card statements';
+
+-- Create a notifications type enum
+CREATE TYPE notification_type AS ENUM (
+  'new_offer',
+  'transfer_bonus',
+  'merchant_offer',
+  'seasonal_promotion'
+);
+
+-- Create the notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_issuer TEXT NOT NULL,
+  card_name TEXT NOT NULL,
+  notification_type notification_type NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  source_url TEXT,
+  start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  end_date TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+-- Create index on card_issuer and card_name for faster lookups
+CREATE INDEX IF NOT EXISTS notifications_card_idx ON notifications (card_issuer, card_name);
+
+-- Create the user_notifications table
+CREATE TABLE IF NOT EXISTS user_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL, -- Clerk user ID
+  notification_id UUID NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+  read BOOLEAN DEFAULT false NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+);
+
+-- Create index on user_id for faster lookups
+CREATE INDEX IF NOT EXISTS user_notifications_user_id_idx ON user_notifications (user_id);
+
+-- Create a unique constraint to prevent duplicate notifications per user
+CREATE UNIQUE INDEX IF NOT EXISTS user_notifications_unique_idx ON user_notifications (user_id, notification_id);
+
+-- Enable RLS on notification tables
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_notifications ENABLE ROW LEVEL SECURITY;
+
+-- Simple policies for notification tables - allow all access for now
+CREATE POLICY all_access_notifications ON notifications FOR ALL USING (true);
+CREATE POLICY all_access_user_notifications ON user_notifications FOR ALL USING (true);

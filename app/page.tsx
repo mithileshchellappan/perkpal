@@ -288,7 +288,7 @@ export default function Page() {
 
           {activeView === "cards" && (
             <Card className="p-6">
-              <MyCardsView onAddCard={() => setShowAddModal(true)} />
+              <MyCardsView cards={cards} onAddCard={() => setShowAddModal(true)} />
             </Card>
           )}
 

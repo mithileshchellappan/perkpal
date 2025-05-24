@@ -22,7 +22,7 @@ interface ApiQueryResponse {
     error?: string;
 }
 
-export function useUserCards() {
+export function useUserCards({fetchCardsOnMount = true}: {fetchCardsOnMount?: boolean} = {}) {
   const { isSignedIn } = useAuth(); // userId is handled by the backend API route via Clerk auth
   const [cards, setCards] = useState<CreditCardType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -110,8 +110,10 @@ export function useUserCards() {
   }, [isSignedIn]);
 
   useEffect(() => {
-    fetchCards();
-  }, [fetchCards]);
+    if (fetchCardsOnMount) {
+      fetchCards();
+    }
+  }, [fetchCards, fetchCardsOnMount]);
 
   const addCard = async (cardData: CreditCardType): Promise<CreditCardType | null> => {
     if (!isSignedIn) {
@@ -193,7 +195,6 @@ export function useUserCards() {
         throw new Error(result.error || 'Failed to delete card via API');
       }
 
-      // Directly update the cards array by filtering out the deleted card
       setCards(prevCards => prevCards.filter(card => card.id !== cardId));
       return true;
     } catch (err) {

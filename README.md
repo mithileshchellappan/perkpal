@@ -1,6 +1,25 @@
 # PerkPal
 
-A credit card management and optimization platform.
+A comprehensive credit card rewards optimization platform powered by Perplexity's Sonar AI that helps users maximize the value of their credit card rewards through intelligent analysis and personalized recommendations.
+
+## Features
+
+- Credit card analysis and recommendations
+- Partner programs tracking
+- Card points tracking and optimization
+- Credit Card Statement analysis
+- Card details and rewards tracking
+- Current Promotions & Offers Tracking
+- Card Comparison and Recommendations
+
+## Tech Stack
+
+- AI: Sonar API by Perplexity
+- Frontend: Next.js
+- UI Framework: Shadcn UI
+- Authentication: Clerk
+- Database: Supabase
+- Hosting: Vercel
 
 ## Setup
 
@@ -8,13 +27,14 @@ A credit card management and optimization platform.
 
 - Node.js (v16 or higher)
 - npm or yarn
+- Perplexity API key
 - Supabase account
 
 ### Installation
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/yourusername/perkpal.git
+   git clone https://github.com/mithileshchellappan/perkpal.git
    cd perkpal
    ```
 
@@ -30,6 +50,8 @@ A credit card management and optimization platform.
    cp .env.example .env.local
    ```
    Edit the `.env.local` file and add your own values for:
+   - `PERPLEXITY_API_KEY`: Your Perplexity API key
+   - `CLERK_SECRET_KEY`: Your Clerk secret key
    - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
    - `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
 
@@ -54,28 +76,10 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Features
-
-- Credit card analysis and recommendations
-- Partner programs tracking
-- Card points tracking and optimization
-- Statement analysis
-
 ## Authentication
 
 The app uses Clerk for authentication. Set up your Clerk environment variables in `.env.local` if you want to enable authentication.
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Visit the Devpost project page for more details: [PerkPal](https://devpost.com/software/perkpal)

@@ -57,6 +57,7 @@ export async function analyzeCardStatement(
 
   try {
     const text = await pdf2md(pdfBuffer);
+    console.log('text', text)
     const { object } = await generateObject({
       model: perplexity('sonar-pro'),
       system: systemPrompt,
@@ -72,6 +73,7 @@ export async function analyzeCardStatement(
         }
       }
     });
+    console.log('object', object)
     
     return {
       ...object,
@@ -132,7 +134,6 @@ export async function storeStatementAnalysis(
   analysis: CardStatementAnalysisResponse
 ): Promise<CardStatementAnalysisResponse> {
   try {
-    // Use the database function to store the analysis
     return await dbStoreStatementAnalysis(analysis);
   } catch (error) {
     console.error('Error storing statement analysis:', error);
