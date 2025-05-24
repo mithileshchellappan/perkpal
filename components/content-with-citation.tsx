@@ -98,6 +98,73 @@ function CitationButton({
       </sup>
     )
   }
+
+  const parseTextWithCitations = (text: string, sources: Array<{ url: string; title?: string }>) => {
+    const citationRegex = /\[(\d+)\]/g
+    const parts = []
+    let lastIndex = 0
+    let match
+
+    while ((match = citationRegex.exec(text)) !== null) {
+
+      if (match.index > lastIndex) {
+        const beforeText = text.slice(lastIndex, match.index)
+        if (beforeText) {
+          parts.push(beforeText)
+        }
+      }
+
+
+      const citationNumber = parseInt(match[1])
+      const source = sources[citationNumber - 1]
+      parts.push(
+        <CitationButton
+          key={`citation-${match.index}-${citationNumber}`}
+          number={citationNumber}
+          source={source}
+        />
+      )
+
+      lastIndex = match.index + match[0].length
+    }
+
+
+    if (lastIndex < text.length) {
+      const remainingText = text.slice(lastIndex)
+      if (remainingText) {
+        parts.push(remainingText)
+      }
+    }
+
+    return parts.length > 1 ? parts : text
+  }
+
+  const processChildrenForCitations = (children: React.ReactNode, sources: Array<{ url: string; title?: string }>): React.ReactNode => {
+    return React.Children.map(children, (child, index) => {
+      if (typeof child === 'string') {
+        // Only process citations if there are actual citation patterns
+        if (/\[\d+\]/.test(child)) {
+          const result = parseTextWithCitations(child, sources)
+          // If result is an array, wrap in a fragment to avoid key issues
+          if (Array.isArray(result)) {
+            return <React.Fragment key={index}>{result}</React.Fragment>
+          }
+          return result
+        }
+        return child
+      } else if (React.isValidElement(child)) {
+        // Only process children if they exist and the element supports them
+        if (child.props && child.props.children !== undefined) {
+          return React.cloneElement(child, {
+            ...child.props,
+            key: child.key || index,
+            children: processChildrenForCitations(child.props.children, sources)
+          })
+        }
+      }
+      return child
+    })
+  }
   
   
   export default function ContentWithCitations({ 
@@ -109,72 +176,41 @@ function CitationButton({
   }) {
     const components = {
       p: ({ children }: { children: React.ReactNode }) => {
-        const textContent = React.Children.toArray(children).join('')
-        
-        if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
-          return <div>{parseTextWithCitations(textContent)}</div>
-        }
-        
-        return <p>{children}</p>
+        return <p>{processChildrenForCitations(children, sources)}</p>
       },
       td: ({ children }: { children: React.ReactNode }) => {
-        const textContent = React.Children.toArray(children).join('')
-        
-        if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
-          return <td>{parseTextWithCitations(textContent)}</td>
-        }
-        
-        return <td>{children}</td>
+        return <td>{processChildrenForCitations(children, sources)}</td>
       },
       th: ({ children }: { children: React.ReactNode }) => {
-        const textContent = React.Children.toArray(children).join('')
-        
-        if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
-          return <th>{parseTextWithCitations(textContent)}</th>
-        }
-        
-        return <th>{children}</th>
+        return <th>{processChildrenForCitations(children, sources)}</th>
+      },
+      strong: ({ children }: { children: React.ReactNode }) => {
+        return <strong>{processChildrenForCitations(children, sources)}</strong>
+      },
+      em: ({ children }: { children: React.ReactNode }) => {
+        return <em>{processChildrenForCitations(children, sources)}</em>
+      },
+      li: ({ children }: { children: React.ReactNode }) => {
+        return <li>{processChildrenForCitations(children, sources)}</li>
+      },
+      h1: ({ children }: { children: React.ReactNode }) => {
+        return <h1>{processChildrenForCitations(children, sources)}</h1>
+      },
+      h2: ({ children }: { children: React.ReactNode }) => {
+        return <h2>{processChildrenForCitations(children, sources)}</h2>
+      },
+      h3: ({ children }: { children: React.ReactNode }) => {
+        return <h3>{processChildrenForCitations(children, sources)}</h3>
+      },
+      h4: ({ children }: { children: React.ReactNode }) => {
+        return <h4>{processChildrenForCitations(children, sources)}</h4>
+      },
+      h5: ({ children }: { children: React.ReactNode }) => {
+        return <h5>{processChildrenForCitations(children, sources)}</h5>
+      },
+      h6: ({ children }: { children: React.ReactNode }) => {
+        return <h6>{processChildrenForCitations(children, sources)}</h6>
       }
-    }
-  
-    const parseTextWithCitations = (text: string) => {
-      const citationRegex = /\[(\d+)\]/g
-      const parts = []
-      let lastIndex = 0
-      let match
-  
-      while ((match = citationRegex.exec(text)) !== null) {
-  
-        if (match.index > lastIndex) {
-          const beforeText = text.slice(lastIndex, match.index)
-          if (beforeText) {
-            parts.push(<span key={`text-${lastIndex}`}>{beforeText}</span>)
-          }
-        }
-  
-  
-        const citationNumber = parseInt(match[1])
-                const source = sources[citationNumber - 1]
-        parts.push(
-          <CitationButton
-            key={`citation-${match.index}`}
-            number={citationNumber}
-            source={source}
-          />
-        )
-  
-        lastIndex = match.index + match[0].length
-      }
-  
-  
-      if (lastIndex < text.length) {
-        const remainingText = text.slice(lastIndex)
-        if (remainingText) {
-          parts.push(<span key={`text-${lastIndex}`}>{remainingText}</span>)
-        }
-      }
-  
-      return parts.length > 0 ? parts : text
     }
   
     return (
