@@ -9,11 +9,8 @@ import { CreditCard, Gift, BarChart, Bot, FileText, Zap, Shield, TrendingUp } fr
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 
-interface LandingPageProps {
-  onLogin: () => void
-}
 
-export function LandingPage({ onLogin }: LandingPageProps) {
+export function LandingPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 

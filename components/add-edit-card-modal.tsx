@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import type { CreditCardType } from "@/lib/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { lookupBin, getNetworkGradient } from "@/lib/bin-lookup"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card } from "@/components/ui/card"
 import { CardNetworkLogo } from "@/components/card-network-logos"
@@ -352,9 +352,6 @@ export function AddEditCardModal({
                   <AlertDescription>{addCardErrorAction.message}</AlertDescription>
                 </Alert>
               )}
-              {isAddingCardAction && step === "card-details" && (
-                <div className="mt-4 text-center">Adding card...</div>
-              )}
             </div>
           )}
 
@@ -364,7 +361,16 @@ export function AddEditCardModal({
                 Back
               </Button>
             )}
-            <Button type="submit">{step === "card-details" ? (card ? "Save Changes" : "Add Card") : "Continue"}</Button>
+            <Button type="submit" disabled={isAddingCardAction && step === "card-details"}>
+              {isAddingCardAction && step === "card-details" ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding Card...
+                </>
+              ) : (
+                step === "card-details" ? (card ? "Save Changes" : "Add Card") : "Continue"
+              )}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

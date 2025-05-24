@@ -92,6 +92,7 @@ export async function updateNotifications() {
                   title: offer.title,
                   description: offer.description,
                   start_date: new Date(offer.start_date),
+                  source_url: offer.source_url,
                   end_date: offer.end_date ? new Date(offer.end_date) : null
                 })
                 .select('id')

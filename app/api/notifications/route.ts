@@ -44,6 +44,7 @@ export async function GET(request: Request) {
       description: un.notifications.description,
       start_date: un.notifications.start_date,
       end_date: un.notifications.end_date,
+      source_url: un.notifications.source_url,
       read: un.read,
       created_at: un.created_at
     }))

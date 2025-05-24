@@ -23,7 +23,7 @@ import { CreditCard, Gift, Globe, BarChart, Tag, Bot, Search } from "lucide-reac
 import { useAuth } from "@clerk/nextjs"
 import { useUserCards } from "@/hooks/use-user-cards"
 import { cn } from "@/lib/utils"
-import { NotificationPanel } from "@/components/notification-panel"
+import { NotificationsContainer } from "@/components/notifications-container"
 
 export default function Page() {
   const { isLoaded, isSignedIn } = useAuth()
@@ -79,9 +79,6 @@ export default function Page() {
     console.log("Deleting card (placeholder - needs backend integration & refetch):", id)
   }
 
-  const handleLogin = () => {
-    // This is now handled by Clerk in the LandingPage component
-  }
 
   const toggleSidebar = () => {
     const newState = !sidebarCollapsed
@@ -90,12 +87,12 @@ export default function Page() {
     localStorage.setItem("sidebarCollapsed", String(newState))
   }
 
-  if (isLoadingAuth || isLoadingCards) {
+  if (isLoadingAuth) {
     return <div className="min-h-screen flex items-center justify-center bg-black text-white">Loading...</div>
   }
 
   if (!isSignedIn) {
-    return <LandingPage onLogin={handleLogin} />
+    return <LandingPage />
   }
 
   if (cardsError) {
@@ -223,9 +220,6 @@ export default function Page() {
         <main className="overflow-auto h-screen">
           {activeView === "dashboard" && (
             <div className="p-6 pb-4">
-               <div className="absolute top-4 right-6 z-10">
-                <NotificationPanel />
-              </div>
               <div className="mb-6 flex items-center justify-between">
                 <div className="space-y-1">
                   <h1 className="text-2xl font-bold">Home</h1>
@@ -266,6 +260,8 @@ export default function Page() {
                   onAddCard={() => setShowAddModal(true)}
                 />
               </Card>
+
+              <NotificationsContainer className="mt-6" />
 
               <Card className="mt-6 p-6">
                 <div className="mb-4 flex items-center justify-between">

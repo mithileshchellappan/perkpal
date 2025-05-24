@@ -113,7 +113,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   // Initial fetch
   useEffect(() => {
     if (isSignedIn) {
-      fetchNotifications()
+      fetchNotifications(true)
     }
   }, [isSignedIn, fetchNotifications])
 

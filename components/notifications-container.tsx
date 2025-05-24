@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Bell, Check, Info, AlertTriangle, TrendingUp, TrendingDown, Gift, CreditCard, X, DollarSign, Clock, ChevronDown } from "lucide-react"
+import { Check, Info, AlertTriangle, TrendingUp, TrendingDown, Gift, CreditCard, X, DollarSign, Clock, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useNotifications } from "@/hooks/use-notifications"
 import { Loader2 } from "lucide-react"
 import type { Notification as NotificationType } from "@/types/notifications"
 
-interface NotificationPanelProps {
+interface NotificationsContainerProps {
   className?: string
 }
 
@@ -34,8 +35,7 @@ function formatTimestamp(dateStr: string): string {
   }
 }
 
-export function NotificationPanel({ className }: NotificationPanelProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function NotificationsContainer({ className }: NotificationsContainerProps) {
   const [selectedCard, setSelectedCard] = useState<string>("all")
   const { 
     notifications, 
@@ -45,26 +45,22 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
     refresh
   } = useNotifications({
     limit: 20,
-    refreshInterval: 60000 * 5, // 5 minutes
-    autoRefresh: true
+    refreshInterval: 60000 * 5,
+    autoRefresh: true,
   })
 
-  // Handle marking all as read
   const handleMarkAllAsRead = async () => {
     await markAsRead()
   }
 
-  // Handle marking a single notification as read
   const handleMarkAsRead = async (id: string) => {
     await markAsRead([id])
   }
 
-  // Handle removing a notification (just mark it as read for now)
   const handleRemoveNotification = async (id: string) => {
     await markAsRead([id])
   }
 
-  // Get the appropriate icon based on notification type
   const getNotificationIcon = (type: NotificationType['notification_type']) => {
     switch (type) {
       case "new_offer":
@@ -92,15 +88,6 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
     }
   }
 
-  // When the dropdown is opened, refresh notifications
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open)
-    if (open) {
-      refresh()
-    }
-  }
-
-  // Get unique cards for the dropdown
   const uniqueCards = useMemo(() => {
     const cardSet = new Set<string>()
     notifications.forEach(notification => {
@@ -113,7 +100,6 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
     })
   }, [notifications])
 
-  // Filter and sort notifications based on selected card
   const filteredNotifications = useMemo(() => {
     let filtered = notifications
     
@@ -129,91 +115,90 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
     })
   }, [notifications, selectedCard])
 
+
   return (
-    <div className={className}>
-      <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative rounded-full">
-            <Bell className="h-5 w-5" />
+    <Card className={className}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            Your Card Updates
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
                 {unreadCount}
               </span>
             )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80 md:w-96 bg-background border-border" forceMount>
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <h3 className="font-semibold">Notifications</h3>
-            <div className="flex items-center gap-2">
-              {uniqueCards.length > 1 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-7 text-xs">
-                      {selectedCard === "all" 
-                        ? "All Cards" 
-                        : `${uniqueCards.find(card => card.key === selectedCard)?.name?.replace("Credit Card", "").replace("Card", "").trim() || "Selected Card"}`
-                      }
-                      <ChevronDown className="ml-1 h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {uniqueCards.length > 1 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 text-xs">
+                    {selectedCard === "all" 
+                      ? "All Cards" 
+                      : `${uniqueCards.find(card => card.key === selectedCard)?.name?.replace("Credit Card", "").replace("Card", "").trim() || "Selected Card"}`
+                    }
+                    <ChevronDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem 
+                    onClick={() => setSelectedCard("all")}
+                    className={cn(selectedCard === "all" && "bg-accent")}
+                  >
+                    All Cards
+                  </DropdownMenuItem>
+                  {uniqueCards.map((card) => (
                     <DropdownMenuItem 
-                      onClick={() => setSelectedCard("all")}
-                      className={cn(selectedCard === "all" && "bg-accent")}
+                      key={card.key}
+                      onClick={() => setSelectedCard(card.key)}
+                      className={cn(selectedCard === card.key && "bg-accent")}
                     >
-                      All Cards
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {card.name.replace(card.issuer.replace("Bank", ""), "").replace("Credit Card", "").replace("Card", "").trim()}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {card.issuer.replace("Bank", "").trim()}
+                        </span>
+                      </div>
                     </DropdownMenuItem>
-                    {uniqueCards.map((card) => (
-                      <DropdownMenuItem 
-                        key={card.key}
-                        onClick={() => setSelectedCard(card.key)}
-                        className={cn(selectedCard === card.key && "bg-accent")}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {card.name.replace(card.issuer.replace("Bank", ""), "").replace("Credit Card", "").replace("Card", "").trim()}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {card.issuer.replace("Bank", "").trim()}
-                          </span>
-                        </div>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              {unreadCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 text-xs text-muted-foreground"
-                  onClick={handleMarkAllAsRead}
-                >
-                  <Check className="mr-1 h-3 w-3" />
-                  Mark all as read
-                </Button>
-              )}
-            </div>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 text-xs text-muted-foreground"
+                onClick={handleMarkAllAsRead}
+              >
+                <Check className="mr-1 h-3 w-3" />
+                Mark all as read
+              </Button>
+            )}
           </div>
-
-          {isLoading ? (
-            <div className="p-8 flex justify-center items-center">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : filteredNotifications.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">
-              <p>No notifications</p>
-            </div>
-          ) : (
-            <ScrollArea className="h-[calc(80vh-8rem)] max-h-80">
-              <div className="flex flex-col gap-1 p-1">
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="p-8 flex justify-center items-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : filteredNotifications.length === 0 ? (
+          <div className="p-4 text-center text-muted-foreground">
+            <p>No notifications</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <ScrollArea className="h-[300px]">
+              <div className="flex flex-col gap-2 pr-4">
                 {filteredNotifications.map((notification) => (
                   <div
                     key={notification.id}
                     className={cn(
-                      "flex gap-3 rounded-lg p-3 text-left transition-colors hover:bg-muted",
-                      !notification.read && "bg-muted/50",
+                      "flex gap-3 rounded-lg p-3 text-left transition-colors hover:bg-muted border",
+                      !notification.read && "bg-muted/50 border-primary/20",
                       notification.source_url && "cursor-pointer hover:bg-muted/70"
                     )}
                     onClick={() => {
@@ -263,15 +248,10 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
                               Mark as read
                             </Button>
                           )}
-                          {notification.source_url && (
-                            <span className="text-xs text-blue-500 hover:text-blue-600">
-                              Click to view source →
-                            </span>
-                          )}
                         </div>
                         {selectedCard === "all" && (
                           <span className="text-xs text-muted-foreground font-medium">
-                            {notification.card_name.replace("Credit Card", "").replace("Card", "").replace(notification.card_issuer.replace("Bank", ""), "").trim()}
+                            {notification.card_name.replace("Credit Card", "").replace("Card", "").trim()}
                           </span>
                         )}
                       </div>
@@ -280,19 +260,9 @@ export function NotificationPanel({ className }: NotificationPanelProps) {
                 ))}
               </div>
             </ScrollArea>
-          )}
-          <div className="border-t border-border p-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-center text-xs text-muted-foreground"
-              onClick={() => setIsOpen(false)}
-            >
-              Close
-            </Button>
           </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   )
-}
+} 

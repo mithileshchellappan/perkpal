@@ -192,7 +192,7 @@ export function MyCardsView({ onAddCard, onRemoveCard }: Omit<MyCardsViewProps, 
                       </CardHeader>
                       <CardContent>
                         <p className="text-2xl font-bold">
-                          {displayCards.reduce((sum, card) => sum + card.baseValue, 0).toLocaleString(undefined, {
+                          {displayCards.reduce((sum, card) => sum + card.cashValue, 0).toLocaleString(undefined, {
                             currency: displayCards[0]?.currency || "USD",
                             style: "currency",
                           })}

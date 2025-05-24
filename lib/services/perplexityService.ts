@@ -415,7 +415,7 @@ export async function getCardLatestOffers(
     - description: Detailed description of the offer or warning
     - start_date: When the offer/change started (ISO format)
     - end_date: When it expires (ISO format, null if no expiry)
-    - source_url: Direct link to the official source (bank website, press release, terms page, etc.)
+    - source_url: Direct link to an official source (bank website, press release, terms page, etc.)
     
     For warning notifications, ensure the notification_type reflects the nature of the warning:
     - "lounge_access_removal" for lounge access changes
@@ -425,7 +425,7 @@ export async function getCardLatestOffers(
     - "program_changes" for negative program changes
     - "expiring_offers" for time-sensitive expirations
     
-    IMPORTANT: Always provide a valid source_url when possible. This should be a direct link to:
+    IMPORTANT: Always provide a valid source_url. This should be a direct link to:
     - Official bank announcement pages
     - Terms and conditions pages
     - Press releases
