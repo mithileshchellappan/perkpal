@@ -1,10 +1,11 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 import { useState, useRef, useEffect } from "react"
-import { ArrowUp, PenSquare, Bot, Copy, RefreshCw } from "lucide-react"
+import { ArrowUp, PenSquare, Bot, Copy, RefreshCw, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { cn } from "@/lib/utils"
 import { useChat } from "@ai-sdk/react"
 import { useUserCards } from "@/hooks/use-user-cards"
@@ -21,6 +22,190 @@ interface Message {
   type: MessageType
   completed?: boolean
   newSection?: boolean
+  sources?: Array<{ url: string; title?: string }>
+}
+
+
+function CitationButton({ 
+  number, 
+  source, 
+  onClick 
+}: { 
+  number: number
+  source?: { url: string; title?: string }
+  onClick?: () => void 
+}) {
+  const handleClick = () => {
+    if (source?.url) {
+      window.open(source.url, '_blank', 'noopener,noreferrer')
+    }
+    onClick?.()
+  }
+
+
+  const getWebsiteInfo = (url: string) => {
+    try {
+      const urlObj = new URL(url)
+      const domain = urlObj.hostname
+      const websiteName = domain.replace('www.', '').split('.')[0]
+      const capitalizedName = websiteName.charAt(0).toUpperCase() + websiteName.slice(1)
+      return {
+        domain,
+        name: capitalizedName,
+        favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=16`
+      }
+    } catch {
+      return {
+        domain: url,
+        name: 'Unknown Source',
+        favicon: null
+      }
+    }
+  }
+
+  const websiteInfo = source?.url ? getWebsiteInfo(source.url) : null
+  if (!source?.url) {
+
+    return (
+      <sup>
+        <button
+          onClick={handleClick}
+          className="inline-flex items-center justify-center w-4 h-4 mx-0.5 text-[0.6rem] font-mono text-white dark:text-gray-900 bg-gray-800 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 border rounded transition-colors duration-200 cursor-pointer"
+          title={`Source ${number}`}
+        >
+          {number}
+        </button>
+      </sup>
+    )
+  }
+
+  return (
+    <sup>
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          <button
+            onClick={handleClick}
+            className="inline-flex items-center justify-center w-4 h-4 mx-0.5 text-[0.6rem] font-mono text-white dark:text-gray-900 bg-gray-800 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 border rounded transition-colors duration-200 cursor-pointer"
+            title={source?.title || source?.url || `Source ${number}`}
+          >
+            {number}
+          </button>
+        </HoverCardTrigger>
+        <HoverCardContent className="w-80 p-3" side="top">
+          <div className="flex items-center space-x-3">
+            {websiteInfo?.favicon && (
+              <img 
+                src={websiteInfo.favicon} 
+                alt={`${websiteInfo.name} favicon`}
+                className="w-4 h-4 flex-shrink-0"
+                onError={(e) => {
+
+                  (e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {source.title || websiteInfo?.name || 'Source'}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {websiteInfo?.domain}
+              </p>
+            </div>
+            <ExternalLink className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    </sup>
+  )
+}
+
+
+function ContentWithCitations({ 
+  content, 
+  sources = [] 
+}: { 
+  content: string
+  sources?: Array<{ url: string; title?: string }>
+}) {
+  const components = {
+    p: ({ children }: { children: React.ReactNode }) => {
+      const textContent = React.Children.toArray(children).join('')
+      
+      if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
+        return <div>{parseTextWithCitations(textContent)}</div>
+      }
+      
+      return <p>{children}</p>
+    },
+    td: ({ children }: { children: React.ReactNode }) => {
+      const textContent = React.Children.toArray(children).join('')
+      
+      if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
+        return <td>{parseTextWithCitations(textContent)}</td>
+      }
+      
+      return <td>{children}</td>
+    },
+    th: ({ children }: { children: React.ReactNode }) => {
+      const textContent = React.Children.toArray(children).join('')
+      
+      if (typeof textContent === 'string' && /\[\d+\]/.test(textContent)) {
+        return <th>{parseTextWithCitations(textContent)}</th>
+      }
+      
+      return <th>{children}</th>
+    }
+  }
+
+  const parseTextWithCitations = (text: string) => {
+    const citationRegex = /\[(\d+)\]/g
+    const parts = []
+    let lastIndex = 0
+    let match
+
+    while ((match = citationRegex.exec(text)) !== null) {
+
+      if (match.index > lastIndex) {
+        const beforeText = text.slice(lastIndex, match.index)
+        if (beforeText) {
+          parts.push(<span key={`text-${lastIndex}`}>{beforeText}</span>)
+        }
+      }
+
+
+      const citationNumber = parseInt(match[1])
+              const source = sources[citationNumber - 1]
+      parts.push(
+        <CitationButton
+          key={`citation-${match.index}`}
+          number={citationNumber}
+          source={source}
+        />
+      )
+
+      lastIndex = match.index + match[0].length
+    }
+
+
+    if (lastIndex < text.length) {
+      const remainingText = text.slice(lastIndex)
+      if (remainingText) {
+        parts.push(<span key={`text-${lastIndex}`}>{remainingText}</span>)
+      }
+    }
+
+    return parts.length > 0 ? parts : text
+  }
+
+  return (
+    <ReactMarkdown 
+      remarkPlugins={[remarkGfm]}
+      components={components}
+    >
+      {content}
+    </ReactMarkdown>
+  )
 }
 
 export function AiAssistantView() {
@@ -36,7 +221,7 @@ export function AiAssistantView() {
   const mainContainerRef = useRef<HTMLDivElement>(null)
   const { cards } = useUserCards()
   const { toast } = useToast()
-  // Initialize useChat hook
+
   const { messages: aiMessages, reload, handleInputChange: handleAiInputChange, append, isLoading, } = useChat({
     api: "/api/chat",
     body: {
@@ -62,6 +247,7 @@ Instructions:
 - Your answer should be relevant to the user's cards and location.
 - Keep your answers short and concise.
 - Ensure your answers are always related to the user's card and location.
+- Do not provide citations inside tables, alw
     `
     },
     onFinish(message, options) {
@@ -69,17 +255,17 @@ Instructions:
     },
   })
 
-  // Check if device is mobile and get viewport height
+
   useEffect(() => {
     const checkMobileAndViewport = () => {
       const isMobileDevice = window.innerWidth < 768
       setIsMobile(isMobileDevice)
 
-      // Capture the viewport height
+
       const vh = window.innerHeight
       setViewportHeight(vh)
 
-      // Apply fixed height to main container on mobile
+
       if (isMobileDevice && mainContainerRef.current) {
         mainContainerRef.current.style.height = `${vh}px`
       }
@@ -87,12 +273,12 @@ Instructions:
 
     checkMobileAndViewport()
 
-    // Set initial height
+
     if (mainContainerRef.current) {
       mainContainerRef.current.style.height = isMobile ? `${viewportHeight}px` : "100%"
     }
 
-    // Update on resize
+
     window.addEventListener("resize", checkMobileAndViewport)
 
     return () => {
@@ -100,7 +286,7 @@ Instructions:
     }
   }, [isMobile, viewportHeight])
 
-  // Scroll to bottom when messages change
+
   useEffect(() => {
     if (aiMessages.length > 0) {
       setTimeout(() => {
@@ -115,14 +301,14 @@ Instructions:
     }
   }, [aiMessages])
 
-  // Focus the textarea on component mount (only on desktop)
+
   useEffect(() => {
     if (textareaRef.current && !isMobile) {
       textareaRef.current.focus()
     }
   }, [isMobile])
 
-  // Set focus back to textarea after streaming ends (only on desktop)
+
   useEffect(() => {
     if (!isLoading && shouldFocusAfterStreamingRef.current && !isMobile) {
       focusTextarea()
@@ -137,7 +323,7 @@ Instructions:
   }
 
   const handleInputContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Only focus if clicking directly on the container, not on buttons or other interactive elements
+
     if (
       e.target === e.currentTarget ||
       (e.currentTarget === inputContainerRef.current && !(e.target as HTMLElement).closest("button"))
@@ -148,7 +334,7 @@ Instructions:
     }
   }
 
-  // Sample questions related to credit cards and rewards
+
   const sampleQuestions = [
     "Which card should I use to book flights?",
     "Which card should I use to pay my taxes?",
@@ -157,7 +343,7 @@ Instructions:
     "Are there any bonus categories active right now?"
   ]
 
-  // Use our local input state combined with AI hook
+
   const handleLocalInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value
     setInputValue(newValue)
@@ -181,14 +367,11 @@ Instructions:
     e.preventDefault()
 
     if (inputValue.trim() && !isLoading) {
-      // Add vibration when message is submitted
       try {
         navigator.vibrate?.(50)
       } catch (e) {
-        // Ignore vibration errors
+        
       }
-
-      // Reset input before starting the AI response
       setInputValue("")
       setHasTyped(false)
 
@@ -196,11 +379,9 @@ Instructions:
         textareaRef.current.style.height = "auto"
       }
 
-      // Only focus the textarea on desktop, not on mobile
       if (!isMobile) {
         focusTextarea()
       } else {
-        // On mobile, blur the textarea to dismiss the keyboard
         if (textareaRef.current) {
           textareaRef.current.blur()
         }
@@ -210,14 +391,14 @@ Instructions:
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Handle Cmd+Enter on both mobile and desktop
+
     if (!isLoading && e.key === "Enter" && e.metaKey) {
       e.preventDefault()
       handleSubmit(e)
       return
     }
 
-    // Only handle regular Enter key (without Shift) on desktop
+
     if (!isLoading && !isMobile && e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSubmit(e)
@@ -233,7 +414,7 @@ Instructions:
       const newHeight = Math.max(24, Math.min(textareaRef.current.scrollHeight, 80))
       textareaRef.current.style.height = `${newHeight}px`
 
-      // Focus the textarea
+
       if (!isMobile) {
         textareaRef.current.focus()
       }
@@ -295,13 +476,9 @@ Instructions:
                 >
                   {message.role === "user" ? (
                     <span>{message.content}</span>
-                  ) : (
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-white prose-headings:text-white prose-strong:text-white prose-a:text-blue-400 relative group">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                                      ) : (
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-white prose-headings:text-white prose-strong:text-white prose-a:text-blue-400 relative group">
+                        <ContentWithCitations content={message.content} sources={message.parts.map((part) => part.type === "source" ? part.source : null).filter((source) => source !== null)} />
                       <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <Button
                           variant="outline"
@@ -370,7 +547,7 @@ Instructions:
                 onChange={handleLocalInputChange}
                 onKeyDown={handleKeyDown}
                 onFocus={() => {
-                  // Ensure the textarea is scrolled into view when focused
+
                   if (textareaRef.current) {
                     textareaRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
                   }
