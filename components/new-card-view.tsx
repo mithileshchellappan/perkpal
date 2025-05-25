@@ -35,7 +35,7 @@ export function NewCardView() {
   const [showRecommendations, setShowRecommendations] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [recommendations, setRecommendations] = useState<PersonalizedCardSuggestionResponse | null>(null)
-  const [country, setCountry] = useState("India") // Default to India
+  const [country, setCountry] = useState("USA")
   const [selectedCategory, setSelectedCategory] = useState<string>("")
 
   // Update country based on user's first card

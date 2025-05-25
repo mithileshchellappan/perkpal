@@ -60,7 +60,7 @@ User context:
 - The user has the following cards: ${selectedCardsForPrompt.map(card =>
         `${card.issuer} ${card.name} (Points Balance: ${card.pointsBalance}, Status: ${card.status}, Rewards Rate: ${card.rewardsRate ?? 0}%)`
       ).join("\n")}.
-- The user is located in ${selectedCardsForPrompt[0]?.country ?? "India"}.
+- The user is located in ${selectedCardsForPrompt[0]?.country ?? "USA"}.
 - The current date is ${new Date().toLocaleString()}.
 
 Instructions:

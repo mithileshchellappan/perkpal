@@ -126,7 +126,7 @@ export function StatementUpload({ cards }: StatementUploadProps) {
     formData.append("userId", userId)
     formData.append("cardName", selectedCardData.name)
     formData.append("issuingBank", selectedCardData.issuer)
-    formData.append("country", selectedCardData.country || "India")
+    formData.append("country", selectedCardData.country || "USA")
     formData.append("statementMonth", statementMonth)
     formData.append("statementYear", statementYear)
 

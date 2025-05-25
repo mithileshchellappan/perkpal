@@ -3,7 +3,7 @@ interface CardNetworkLogoProps {
   className?: string
 }
 
-export function CardNetworkLogo({ network, className = "h-8 w-8" }: CardNetworkLogoProps) {
+export function CardNetworkLogo({ network, className = "h-10 w-10" }: CardNetworkLogoProps) {
   switch (network.toLowerCase()) {
     case "visa":
       return <VisaLogo className={className} />
@@ -45,20 +45,27 @@ function VisaLogo({ className }: { className?: string }) {
 
 function MastercardLogo({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 750 471" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="750" height="471" rx="40" fill="white" />
-      <path
-        d="M434.008 235.5C434.008 181.95 407.56 134.5 367.504 104.5C327.448 134.5 301 181.95 301 235.5C301 289.05 327.448 336.5 367.504 366.5C407.56 336.5 434.008 289.05 434.008 235.5Z"
-        fill="#FF5F00"
-      />
-      <path
-        d="M367.504 104.5C327.448 134.5 301 181.95 301 235.5C301 289.05 327.448 336.5 367.504 366.5C327.448 396.5 274.552 396.5 234.496 366.5C194.44 336.5 168 289.05 168 235.5C168 181.95 194.44 134.5 234.496 104.5C274.552 74.5 327.448 74.5 367.504 104.5Z"
-        fill="#EB001B"
-      />
-      <path
-        d="M567 235.5C567 289.05 540.552 336.5 500.496 366.5C460.44 396.5 407.552 396.5 367.496 366.5C407.552 336.5 434 289.05 434 235.5C434 181.95 407.552 134.5 367.496 104.5C407.552 74.5 460.44 74.5 500.496 104.5C540.552 134.5 567 181.95 567 235.5Z"
-        fill="#F79E1B"
-      />
+    <svg 
+      className={className}
+      version="1.1" 
+      id="Layer_1" 
+      xmlns="http://www.w3.org/2000/svg" 
+      xmlnsXlink="http://www.w3.org/1999/xlink" 
+      x="0px" 
+      y="0px"
+      viewBox="0 0 152.4 108" 
+      xmlSpace="preserve"
+    >
+      <g>
+        <rect y="0" fill="none" width="152.4" height="108"/>
+        <g>
+          <rect x="60.4" y="25.7" fill="#FF5F00" width="31.5" height="56.6"/>
+          <path fill="#EB001B" d="M62.4,54c0-11,5.1-21.5,13.7-28.3c-15.6-12.3-38.3-9.6-50.6,6.1C13.3,47.4,16,70,31.7,82.3
+            c13.1,10.3,31.4,10.3,44.5,0C67.5,75.5,62.4,65,62.4,54z"/>
+          <path fill="#F79E1B" d="M134.4,54c0,19.9-16.1,36-36,36c-8.1,0-15.9-2.7-22.2-7.7c15.6-12.3,18.3-34.9,6-50.6c-1.8-2.2-3.8-4.3-6-6
+            c15.6-12.3,38.3-9.6,50.5,6.1C131.7,38.1,134.4,45.9,134.4,54z"/>
+        </g>
+      </g>
     </svg>
   )
 }

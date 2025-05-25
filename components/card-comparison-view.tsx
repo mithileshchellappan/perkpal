@@ -105,11 +105,10 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
   const [hasComparisonData, setHasComparisonData] = useState(false)
   const [bankOptions, setBankOptions] = useState<BankWithCards[]>([])
   const [isLoadingBanks, setIsLoadingBanks] = useState(true)
-  const [userCountry, setUserCountry] = useState<string>("India") // Default to India, will be updated from first card
+  const [userCountry, setUserCountry] = useState<string>("USA")
   const [showComparison, setShowComparison] = useState(false)
   const [isComparingCards, setIsComparingCards] = useState(false)
 
-  // Determine user's country from their first card
   useEffect(() => {
     if (cards && cards.length > 0 && cards[0].country) {
       setUserCountry(cards[0].country);
