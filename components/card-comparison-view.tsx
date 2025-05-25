@@ -110,17 +110,12 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
   const [isComparingCards, setIsComparingCards] = useState(false)
 
   useEffect(() => {
-    if (cards && cards.length > 0 && cards[0].country) {
-      setUserCountry(cards[0].country);
-    }
-  }, [cards]);
-
-  // Fetch banks and cards from API
-  useEffect(() => {
     const fetchBanksAndCards = async () => {
-      setIsLoadingBanks(true);
+      
       try {
-        const response = await fetch(`/api/bank-cards?country=${encodeURIComponent(userCountry)}`);
+        const country = cards && cards.length > 0 && cards[0].country ? cards[0].country : "USA"
+        setUserCountry(country)
+        const response = await fetch(`/api/bank-cards?country=${encodeURIComponent(country)}`);
         const result = await response.json();
         
         if (!response.ok || !result.success || !result.data) {
@@ -129,7 +124,6 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
         
         const banksData: BankWithCards[] = result.data;
 
-        // Add network and color properties to each card
         const enhancedBanksData = banksData.map(bank => {
           return {
             ...bank,
@@ -152,9 +146,8 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
     };
     
     fetchBanksAndCards();
-  }, [userCountry]);
+  }, [cards]);
 
-  // Update available cards when bank is selected
   useEffect(() => {
     if (selectedBank) {
       const bank = bankOptions.find((b) => b.name === selectedBank);
@@ -164,9 +157,6 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
       setAvailableCards([]);
     }
   }, [selectedBank, bankOptions]);
-
-  // Remove the auto-fetching useEffect for comparison data
-  // and replace with a function to fetch on demand
 
   const fetchComparisonData = async () => {
     if (selectedCards.length < 2) {
@@ -227,7 +217,7 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
         setSelectedCards([...selectedCards, newCard]);
         setSelectedBank(null);
         setSelectedCard(null);
-        setIsAddingCard(selectedCards.length < 2); // Only allow adding another card if less than 3 cards selected
+        setIsAddingCard(selectedCards.length < 2); 
       }
     }
   };
@@ -235,7 +225,6 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
   const removeCard = (id: string) => {
     setSelectedCards(selectedCards.filter((card) => card.id !== id));
     setIsAddingCard(true);
-    // Reset comparison view if a card is removed
     if (showComparison) {
       setShowComparison(false);
     }
@@ -244,7 +233,6 @@ export function CardComparisonView({ cards }: CardComparisonViewProps) {
   const clearSelection = () => {
     setSelectedCards([]);
     setIsAddingCard(true);
-    // Reset comparison view if selection is cleared
     if (showComparison) {
       setShowComparison(false);
     }
