@@ -358,12 +358,12 @@ export async function getCardPartnerPrograms(
     - partner_type: Either 'Airline' or 'Hotel'
     - transfer_ratio: The transfer ratio (e.g., "1:1", "1000:750")
     - current_bonus: Any current promotional bonus for transferring to this partner (null if none)
-    - transfer_url: URL to transfer points to this partner (null if not available)
+    - transfer_url: URL to transfer points to this partner
     - logo_url: URL to the partner's logo from Wikipedia (e.g., https://upload.wikimedia.org/wikipedia/commons/thumb/...). Please find the actual Wikipedia URL for the official logo of each partner. If no Wikipedia logo is available, use null.
 
     Also include information about lounge access:
-    - domestic_lounges_available: Number of domestic lounges available (null if unknown)
-    - international_lounges_available: Number of international lounges available (null if unknown)
+    - domestic_lounges_available: Number of domestic lounges available (0 if unknown) (-1 if unlimited)
+    - international_lounges_available: Number of international lounges available (0 if unknown) (-1 if unlimited)
 
     Ensure the output is ONLY the JSON object without any additional text or explanations.
     Use standard escape characters for any quotes within string values.

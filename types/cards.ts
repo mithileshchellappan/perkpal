@@ -235,8 +235,8 @@ export const CardPartnerProgramsResponseSchema = z.object({
   card_name: z.string(),
   issuing_bank: z.string(),
   partners: z.array(PartnerProgramSchema),
-  domestic_lounges_available: z.number().nullable(),
-  international_lounges_available: z.number().nullable(),
+  domestic_lounges_available: z.number(),
+  international_lounges_available: z.number(),
 });
 export type CardPartnerProgramsResponse = z.infer<typeof CardPartnerProgramsResponseSchema>;
 

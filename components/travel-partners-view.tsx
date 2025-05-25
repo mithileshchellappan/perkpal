@@ -72,15 +72,11 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
         })
         
         const data = await response.json()
-        
         if (data.success && data.data) {
-          // Transform API response to our component's format
           const partners = data.data.partners.map((partner: PartnerProgram, index: number) => {
-            // Parse transfer ratio to extract multiplier if available
             const transferRatio = partner.transfer_ratio
             const bonusMatch = partner.current_bonus ? partner.current_bonus.match(/(\d+)%/) : null
             const bonusMultiplier = bonusMatch ? 1 + (parseInt(bonusMatch[1], 10) / 100) : null
-            console.log(partner)
             return {
               id: index.toString(),
               name: partner.partner_name,
@@ -136,12 +132,7 @@ export function TravelPartnersView({ cards }: TravelPartnersViewProps) {
   // Helper function to format lounge access display
   const formatLoungeAccess = (count: number) => {
     if (count === -1) {
-      return (
-        <div className="flex items-center">
-          <Infinity className="h-4 w-4 mr-1" />
-          <span>Unlimited</span>
-        </div>
-      )
+      return "Unlimited"
     }
     return count
   }
