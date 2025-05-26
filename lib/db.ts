@@ -922,7 +922,7 @@ export async function getCachedEcommerceRewards(
     try {
       return JSON.parse(data.rewards_data as string);
     } catch (e) {
-      if(e.message.includes('[]')){
+      if(e.message.includes('[object Object]')){
         return data.rewards_data;
       }
       console.error('Error parsing ecommerce rewards data:', e);
