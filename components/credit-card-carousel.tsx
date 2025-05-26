@@ -62,7 +62,6 @@ export function CreditCardCarousel({
     }
   }, [currentIndex, cardsPerView])
 
-  // If a card is selected, ensure it's visible in the carousel
   useEffect(() => {
     if (selectedCardId) {
       const selectedIndex = cards.findIndex((card) => card.id === selectedCardId)
@@ -213,12 +212,10 @@ interface CreditCardProps {
   onClick?: () => void
 }
 
-// Update the CreditCard component to use more sophisticated gradients
 export function CreditCard({ card, isActive, isSelected = false, hideDetails = false, onClick }: CreditCardProps) {
-  // Generate consistent color from card name + issuer
   const baseColor = generateColorFromString(`${card.name}-${card.issuer}`)
-  const secondaryColor = adjustColor(baseColor, 5) // Slightly lighter shade for gradient
-  const accentColor = adjustColor(baseColor, -8) // Slightly darker shade for accents
+  const secondaryColor = adjustColor(baseColor, 5)
+  const accentColor = adjustColor(baseColor, -8)
 
   return (
     <Card
@@ -233,7 +230,6 @@ export function CreditCard({ card, isActive, isSelected = false, hideDetails = f
       }}
       onClick={onClick}
     >
-      {/* Add subtle pattern overlay */}
       <div
         className="absolute inset-0 opacity-10 mix-blend-overlay"
         style={{
@@ -242,7 +238,6 @@ export function CreditCard({ card, isActive, isSelected = false, hideDetails = f
         }}
       />
 
-      {/* Add subtle highlight */}
       <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-white/10 to-transparent" />
 
       <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full" />

@@ -99,8 +99,8 @@ export function AddEditCardModal({
   }, [open, card])
 
   const handleBinLookup = async () => {
-    if (binNumber.length < 8) {
-      setBinError("Please enter at least 8 digits")
+    if (binNumber.length < 6) {
+      setBinError("Please enter at least 6 digits")
       return
     }
 
