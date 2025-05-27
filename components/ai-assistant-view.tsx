@@ -70,6 +70,7 @@ Instructions:
 - If the user asks for information, provide a concise and direct answer.
 - Your answer should be relevant to the user's cards and location.
 - Keep your answers short and concise.
+- Structure your answers in the best way possible, with tables when needed and appropriate amounts of new lines.
 - Ensure your answers are always related to the user's card and location.
 - Do not provide citations inside tables, alw
     `
@@ -270,13 +271,6 @@ Instructions:
     })
   }
 
-  const getSelectedCardsDisplay = () => {
-    if (selectedCards.includes("all")) {
-      return "All Cards"
-    }
-    return selectedCards.length
-  }
-
   const handleCopyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
       .then(() => {
@@ -361,6 +355,20 @@ Instructions:
                 
               </div>
             ))}
+            
+            {isLoading && aiMessages.length > 0 && aiMessages[aiMessages.length - 1].role === 'user' && (
+              <div className="flex flex-col items-start">
+                <div className="max-w-[80%] px-4 py-3 rounded-2xl text-foreground rounded-bl-none">
+                  <div className="flex items-center space-x-1">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div ref={messagesEndRef} />
           </div>

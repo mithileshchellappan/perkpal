@@ -211,6 +211,9 @@ export async function getCachedCardPartnerPrograms(
     try {
       return JSON.parse(data.partners_data as string) as CardPartnerProgramsResponse;
     } catch (e) {
+      if(e.message.includes('[object Object]')){
+        return data.partners_data as CardPartnerProgramsResponse;
+      }
       console.error('Error parsing partner programs data:', e);
       return null;
     }
@@ -424,6 +427,9 @@ export async function getUserCards(userId: string): Promise<(UserCard & { approx
         try {
           userCard.cardAnalysisData = JSON.parse(analysis.analysis_data);
         } catch (e) {
+          if(e.message.includes('[object Object]')){
+            userCard.cardAnalysisData = analysis.analysis_data;
+          }
           console.error('Error parsing analysis data:', e);
         }
       }
@@ -501,6 +507,9 @@ export async function getCardById(userId: string, cardId: string): Promise<(User
         try {
           userCard.cardAnalysisData = JSON.parse(analysisData.analysis_data);
         } catch (e) {
+          if(e.message.includes('[object Object]')){
+            userCard.cardAnalysisData = analysisData.analysis_data;
+          }
           console.error('Error parsing analysis data:', e);
         }
       }

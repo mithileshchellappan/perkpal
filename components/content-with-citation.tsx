@@ -2,6 +2,7 @@ import React from "react"
 
 import ReactMarkdown from "react-markdown"
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { ExternalLink } from "lucide-react"
 
@@ -176,7 +177,7 @@ function CitationButton({
   }) {
     const components = {
       p: ({ children }: { children: React.ReactNode }) => {
-        return <p>{processChildrenForCitations(children, sources)}</p>
+        return <p className="mb-4 leading-relaxed">{processChildrenForCitations(children, sources)}</p>
       },
       td: ({ children }: { children: React.ReactNode }) => {
         return <td>{processChildrenForCitations(children, sources)}</td>
@@ -185,40 +186,64 @@ function CitationButton({
         return <th>{processChildrenForCitations(children, sources)}</th>
       },
       strong: ({ children }: { children: React.ReactNode }) => {
-        return <strong>{processChildrenForCitations(children, sources)}</strong>
+        return <strong className="font-semibold">{processChildrenForCitations(children, sources)}</strong>
       },
       em: ({ children }: { children: React.ReactNode }) => {
-        return <em>{processChildrenForCitations(children, sources)}</em>
+        return <em className="italic">{processChildrenForCitations(children, sources)}</em>
       },
       li: ({ children }: { children: React.ReactNode }) => {
-        return <li>{processChildrenForCitations(children, sources)}</li>
+        return <li className="mb-1 ml-4">{processChildrenForCitations(children, sources)}</li>
+      },
+      ul: ({ children }: { children: React.ReactNode }) => {
+        return <ul className="mb-4 ml-4 list-disc space-y-1">{children}</ul>
+      },
+      ol: ({ children }: { children: React.ReactNode }) => {
+        return <ol className="mb-4 ml-4 list-decimal space-y-1">{children}</ol>
       },
       h1: ({ children }: { children: React.ReactNode }) => {
-        return <h1>{processChildrenForCitations(children, sources)}</h1>
+        return <h1 className="text-3xl font-bold mb-6 mt-8">{processChildrenForCitations(children, sources)}</h1>
       },
       h2: ({ children }: { children: React.ReactNode }) => {
-        return <h2>{processChildrenForCitations(children, sources)}</h2>
+        return <h2 className="text-2xl font-bold mb-4 mt-6">{processChildrenForCitations(children, sources)}</h2>
       },
       h3: ({ children }: { children: React.ReactNode }) => {
-        return <h3>{processChildrenForCitations(children, sources)}</h3>
+        return <h3 className="text-xl font-semibold mb-3 mt-5">{processChildrenForCitations(children, sources)}</h3>
       },
       h4: ({ children }: { children: React.ReactNode }) => {
-        return <h4>{processChildrenForCitations(children, sources)}</h4>
+        return <h4 className="text-lg font-semibold mb-2 mt-4">{processChildrenForCitations(children, sources)}</h4>
       },
       h5: ({ children }: { children: React.ReactNode }) => {
-        return <h5>{processChildrenForCitations(children, sources)}</h5>
+        return <h5 className="text-base font-semibold mb-2 mt-3">{processChildrenForCitations(children, sources)}</h5>
       },
       h6: ({ children }: { children: React.ReactNode }) => {
-        return <h6>{processChildrenForCitations(children, sources)}</h6>
+        return <h6 className="text-sm font-semibold mb-2 mt-3">{processChildrenForCitations(children, sources)}</h6>
+      },
+      hr: () => {
+        return <hr className="my-8 border-gray-300 dark:border-gray-600" />
+      },
+      blockquote: ({ children }: { children: React.ReactNode }) => {
+        return <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 py-2 my-4 italic">{children}</blockquote>
+      },
+      code: ({ children, className }: { children: React.ReactNode; className?: string }) => {
+        const isBlock = className?.includes('language-')
+        if (isBlock) {
+          return <code className={`block bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm font-mono mb-4 ${className || ''}`}>{children}</code>
+        }
+        return <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono">{children}</code>
+      },
+      pre: ({ children }: { children: React.ReactNode }) => {
+        return <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm font-mono mb-4">{children}</pre>
       }
     }
   
     return (
-      <ReactMarkdown 
-        remarkPlugins={[remarkGfm]}
-        components={components}
-      >
-        {content}
-      </ReactMarkdown>
+      <div className="prose prose-gray dark:prose-invert max-w-none">
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm, remarkBreaks]}
+          components={components}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
     )
   }
