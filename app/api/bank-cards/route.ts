@@ -1,7 +1,8 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { getBankCardProducts } from '@/lib/db';
 
-// Define interfaces for our data structures
+export const dynamic = 'force-dynamic';
+
 interface CardProduct {
   id: string;
   name: string;
@@ -15,11 +16,9 @@ interface BankWithCards {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get country from query params
-    const url = new URL(request.url);
-    const country = url.searchParams.get('country');
+    const { searchParams } = request.nextUrl;
+    const country = searchParams.get('country');
     
-    // Get bank cards filtered by country if provided
     const allProducts = await getBankCardProducts(undefined, country || undefined);
     
     if (!allProducts || allProducts.length === 0) {
@@ -32,7 +31,6 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Group products by bank
     const groupedByBank: Record<string, CardProduct[]> = allProducts.reduce((acc: Record<string, CardProduct[]>, product) => {
       const bankName = product.bankName;
       if (!acc[bankName]) {
@@ -48,7 +46,6 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {});
     
-    // Convert to array format for the frontend
     const banksList: BankWithCards[] = Object.keys(groupedByBank).map(bankName => ({
       name: bankName,
       cards: groupedByBank[bankName]
