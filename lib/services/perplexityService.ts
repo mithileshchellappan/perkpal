@@ -391,6 +391,7 @@ export async function getCardLatestOffers(
   const systemPrompt = 'You are an AI assistant that provides accurate and concise information about credit card offers and promotions. You always respond in the requested JSON format without any additional explanatory text or markdown formatting outside of the JSON structure itself.';
   const userPrompt = `
     Generate a JSON summary of current offers, promotions, and important warnings for the ${issuingBank} ${cardName} credit card in ${country}.
+    CRITICAL INSTRUCTION: Only include actual, confirmed offers and warnings. Do NOT generate placeholder entries, negative confirmations, or 'No [item]' responses. If no relevant information exists for a category, simply omit it from the results.
     Focus specifically on:
     
     POSITIVE OFFERS:
@@ -433,6 +434,8 @@ export async function getCardLatestOffers(
     - Card benefit pages
     If no specific source URL is available, use the main card page or bank's offers page.
     
+    IMPORTANT: If there are no changes to any of the categories, do not provide outputs like 'No changes', 'No Annual Fee Increase' etc., simply return an empty array.
+
     Only include significant, confirmed offers and warnings from official sources. Return an empty array if no relevant offers or warnings exist.
   `;
 

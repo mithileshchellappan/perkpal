@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { ArrowUp, PenSquare, Bot, Copy, RefreshCw, ExternalLink, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -44,12 +44,10 @@ export function AiAssistantView() {
     return cards.filter(card => selectedCards.includes(`${card.issuer}-${card.name}`))
   }
 
-  const selectedCardsForPrompt = getSelectedCardsForPrompt()
+  const selectedCardsForPrompt = useMemo(() => getSelectedCardsForPrompt(), [selectedCards, cards])
 
-  const { messages: aiMessages, reload, handleInputChange: handleAiInputChange, append, isLoading, } = useChat({
-    api: "/api/chat",
-    body: {
-      system: `You are a helpful credit card points and rewards assistant.
+  const systemPrompt = useMemo(() => {
+    return `You are a helpful credit card points and rewards assistant.
 
 Your role:
 - Provide accurate, up-to-date information about credit cards, points systems, and rewards programs.
@@ -72,14 +70,23 @@ Instructions:
 - Keep your answers short and concise.
 - Structure your answers in the best way possible, with tables when needed and appropriate amounts of new lines.
 - Ensure your answers are always related to the user's card and location.
-- Do not provide citations inside tables, alw
-    `
+- Do not provide citations inside tables, alw`
+  }, [selectedCardsForPrompt])
+
+  const chatConfig = useMemo(() => ({
+    api: "/api/chat",
+    body: {
+      system: systemPrompt
+    },
+    onError(error) {
+      console.error("onError", error)
     },
     onFinish(message, options) {
       console.log("onFinish", message, options)
     },
-  })
+  }), [systemPrompt])
 
+  const { messages: aiMessages, reload, handleInputChange: handleAiInputChange, append, isLoading, } = useChat(chatConfig)
 
   useEffect(() => {
     const checkMobileAndViewport = () => {
